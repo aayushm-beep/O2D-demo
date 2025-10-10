@@ -1,0 +1,369 @@
+<!-- settings.html -->
+{% extends "base.html" %}
+{% block title %}Settings - O2D-Demo{% endblock %}
+
+{% block extra_css %}
+<style>
+.settings-container {
+    padding: var(--space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: var(--space-xl);
+}
+
+.page-header h1 {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.settings-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.settings-card h3 {
+    font-size: var(--font-md);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.settings-card h3 i {
+    color: var(--primary);
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.313rem;
+    font-size: var(--font-sm);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.438rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background: var(--bg-secondary);
+    cursor: not-allowed;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-sm);
+    transition: background var(--transition-fast);
+}
+
+.checkbox-label:hover {
+    background: var(--bg-tertiary);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.btn-save {
+    margin-top: 0.5rem;
+}
+
+.theme-preview {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.theme-option {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: center;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.theme-option:hover {
+    border-color: var(--primary);
+}
+
+.theme-option.active {
+    border-color: var(--primary);
+    background: rgba(0, 102, 204, 0.1);
+    color: var(--primary);
+}
+
+.theme-light {
+    background: #ffffff;
+    color: #1f2937;
+}
+
+.theme-dark {
+    background: #0f172a;
+    color: #f1f5f9;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="page-header">
+        <h1>Settings</h1>
+        <p>Configure system preferences and account settings</p>
+    </div>
+
+    <div class="settings-grid">
+        <!-- Account Information -->
+        <div class="settings-card">
+            <h3><i class="fas fa-user"></i> Account Information</h3>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" value="{{ username }}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="form-control" placeholder="admin@dispatchpro.com">
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <input type="text" id="role" class="form-control" value="Administrator" readonly>
+            </div>
+            <button class="btn btn-primary btn-save">
+                <i class="fas fa-save"></i> Update Profile
+            </button>
+        </div>
+
+        <!-- Security -->
+        <div class="settings-card">
+            <h3><i class="fas fa-lock"></i> Security</h3>
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" class="form-control">
+            </div>
+            <button class="btn btn-primary btn-save">
+                <i class="fas fa-key"></i> Change Password
+            </button>
+        </div>
+
+        <!-- Appearance -->
+        <div class="settings-card">
+            <h3><i class="fas fa-palette"></i> Appearance</h3>
+            <div class="form-group">
+                <label>Theme</label>
+                <div class="theme-preview">
+                    <div class="theme-option theme-light" onclick="setTheme('light')">
+                        <i class="fas fa-sun"></i> Light
+                    </div>
+                    <div class="theme-option theme-dark" onclick="setTheme('dark')">
+                        <i class="fas fa-moon"></i> Dark
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="language">Language</label>
+                <select id="language" class="form-control">
+                    <option selected>English</option>
+                    <option>Hindi</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-save">
+                <i class="fas fa-check"></i> Save Appearance
+            </button>
+        </div>
+
+        <!-- Notifications -->
+        <div class="settings-card">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" checked>
+                    <span>Email notifications for new orders</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked>
+                    <span>Alert on low inventory</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox">
+                    <span>Daily performance reports</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox">
+                    <span>Weekly analytics summary</span>
+                </label>
+            </div>
+            <button class="btn btn-primary btn-save">
+                <i class="fas fa-save"></i> Save Notifications
+            </button>
+        </div>
+
+        <!-- System Preferences -->
+        <div class="settings-card">
+            <h3><i class="fas fa-cog"></i> System Preferences</h3>
+            <div class="form-group">
+                <label for="currency">Currency</label>
+                <select id="currency" class="form-control">
+                    <option selected>INR - Indian Rupee</option>
+                    <option>USD - US Dollar</option>
+                    <option>EUR - Euro</option>
+                    <option>GBP - British Pound</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dateFormat">Date Format</label>
+                <select id="dateFormat" class="form-control">
+                    <option>DD/MM/YYYY</option>
+                    <option>MM/DD/YYYY</option>
+                    <option selected>YYYY-MM-DD</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="timezone">Timezone</label>
+                <select id="timezone" class="form-control">
+                    <option selected>IST (UTC+5:30)</option>
+                    <option>UTC</option>
+                    <option>EST (UTC-5)</option>
+                    <option>PST (UTC-8)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-save">
+                <i class="fas fa-check"></i> Save Preferences
+            </button>
+        </div>
+
+        <!-- Data & Privacy -->
+        <div class="settings-card">
+            <h3><i class="fas fa-shield-alt"></i> Data & Privacy</h3>
+            <div class="form-group">
+                <label>Data Retention</label>
+                <select class="form-control">
+                    <option>1 Year</option>
+                    <option selected>2 Years</option>
+                    <option>5 Years</option>
+                    <option>Indefinite</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" checked>
+                    <span>Allow analytics tracking</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox">
+                    <span>Share usage data</span>
+                </label>
+            </div>
+            <div style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border);">
+                <button class="btn btn-outline" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+                <button class="btn btn-outline" style="width: 100%; color: var(--danger); border-color: var(--danger);">
+                    <i class="fas fa-trash"></i> Delete Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Update active state
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.remove('active');
+    });
+    event.target.closest('.theme-option').classList.add('active');
+    
+    showToast(`Theme changed to ${theme} mode`, 'success');
+}
+
+// Set active theme on load
+document.addEventListener('DOMContentLoaded', () => {
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        if ((currentTheme === 'light' && opt.classList.contains('theme-light')) ||
+            (currentTheme === 'dark' && opt.classList.contains('theme-dark'))) {
+            opt.classList.add('active');
+        }
+    });
+
+    // Add save handlers
+    document.querySelectorAll('.btn-save').forEach(btn => {
+        btn.addEventListener('click', () => {
+            showToast('Settings saved successfully', 'success');
+        });
+    });
+});
+</script>
+{% endblock %}

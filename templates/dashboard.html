@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - O2D-Demo{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-container {
+    padding: var(--space-xl);
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease-in;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xl);
+}
+
+.dashboard-header h1 {
+    font-size: var(--font-xl);
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+}
+
+.subtitle { color: var(--text-secondary); font-size: var(--font-sm); }
+
+.header-date {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.metric-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--card-color-start), var(--card-color-end));
+}
+.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.card-blue { --card-color-start: #0066cc; --card-color-end: #0052a3; }
+.card-green { --card-color-start: #16a34a; --card-color-end: #15803d; }
+.card-orange { --card-color-start: #f59e0b; --card-color-end: #d97706; }
+.card-purple { --card-color-start: #8b5cf6; --card-color-end: #7c3aed; }
+
+.metric-icon {
+    width: 44px; height: 44px; border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--font-lg); color: white;
+}
+.card-blue .metric-icon { background: linear-gradient(135deg, #0066cc, #0052a3); }
+.card-green .metric-icon { background: linear-gradient(135deg, #16a34a, #15803d); }
+.card-orange .metric-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.card-purple .metric-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+.metric-content { flex: 1; }
+.metric-content h3 { font-size: var(--font-xs); color: var(--text-secondary); margin-bottom: 0.313rem; font-weight: 600; }
+.metric-value { font-size: var(--font-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem; }
+.metric-trend { font-size: var(--font-xs); font-weight: 600; }
+.trend-up { color: #16a34a; }
+.trend-down { color: #ef4444; }
+
+.charts-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.chart-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.chart-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.chart-header h3 {
+    color: var(--text-primary);
+    font-size: var(--font-md);
+    font-weight: 600;
+    display: flex; align-items: center; gap: 0.375rem;
+}
+
+.chart-select {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.313rem 0.625rem;
+    font-size: var(--font-xs);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Charts are ~30% larger per your update */
+.chart-canvas { height: 185px !important; width: 100% !important; }
+
+.recent-orders-section {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.section-header h3 {
+    color: var(--text-primary);
+    font-size: var(--font-md);
+    font-weight: 600;
+    display: flex; align-items: center; gap: 0.375rem;
+}
+
+.recent-orders-table { width: 100%; border-collapse: collapse; }
+
+.recent-orders-table thead { background: var(--bg-secondary); }
+
+.recent-orders-table th {
+    padding: 0.5rem 0.625rem; text-align: left; font-weight: 600;
+    color: var(--text-secondary); font-size: var(--font-xs); text-transform: uppercase;
+}
+
+.recent-orders-table td {
+    padding: 0.5rem 0.625rem; border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary); font-size: var(--font-sm);
+}
+
+.recent-orders-table tbody tr:hover { background: var(--bg-secondary); }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 768px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .charts-row { grid-template-columns: 1fr; }
+    .chart-canvas { height: 150px !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1>Welcome back, {{ username }}!</h1>
+            <p class="subtitle">Here's what's happening with your orders today</p>
+        </div>
+        <div class="header-date">
+            <i class="fas fa-calendar-alt"></i>
+            <span id="currentDate"></span>
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric-card card-blue">
+            <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="metric-content">
+                <h3>Total Revenue (7d)</h3>
+                <p class="metric-value" id="totalRevenue">$0</p>
+                <span class="metric-trend trend-up"><i class="fas fa-arrow-up"></i> 12.5%</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-green">
+            <div class="metric-icon"><i class="fas fa-shopping-cart"></i></div>
+            <div class="metric-content">
+                <h3>Total Orders</h3>
+                <p class="metric-value" id="totalOrders">0</p>
+                <span class="metric-trend trend-up"><i class="fas fa-arrow-up"></i> 8.3%</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-orange">
+            <div class="metric-icon"><i class="fas fa-clock"></i></div>
+            <div class="metric-content">
+                <h3>Pending Orders</h3>
+                <p class="metric-value" id="pendingOrders">0</p>
+                <span class="metric-trend trend-down"><i class="fas fa-arrow-down"></i> 3.2%</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-purple">
+            <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="metric-content">
+                <h3>Avg Order Value</h3>
+                <p class="metric-value" id="avgOrderValue">$0</p>
+                <span class="metric-trend trend-up"><i class="fas fa-arrow-up"></i> 5.7%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-chart-bar"></i> Orders Performance</h3>
+                <select id="performanceRange" class="chart-select">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </div>
+            <canvas id="performanceChart" class="chart-canvas"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-chart-pie"></i> Order Status Distribution</h3>
+            </div>
+            <canvas id="statusChart" class="chart-canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="recent-orders-section">
+        <div class="section-header">
+            <h3><i class="fas fa-history"></i> Recent Orders</h3>
+            <a href="/orders" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="table-responsive">
+            <table class="recent-orders-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="recentOrdersBody">
+                    <tr><td colspan="6" class="text-center">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setCurrentDate();
+    loadDashboardData();
+    setInterval(loadDashboardData, 30000);
+    watchThemeChanges();
+});
+
+function setCurrentDate() {
+    const el = document.getElementById('currentDate');
+    el.textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+async function loadDashboardData() {
+    try {
+        const res = await fetch('/api/dashboard/data');
+        const data = await res.json();
+
+        animateValue('totalRevenue', 0, data.metrics.total_revenue, '$');
+        animateValue('totalOrders', 0, data.metrics.total_orders);
+        animateValue('pendingOrders', 0, data.metrics.pending_orders);
+        animateValue('avgOrderValue', 0, data.metrics.avg_order_value, '$');
+
+        window.__lastPerfData = data.chart_data.performance;
+        window.__lastStatusData = data.chart_data.status_distribution;
+
+        updatePerformanceChart(window.__lastPerfData);
+        updateStatusChart(window.__lastStatusData);
+        updateRecentOrders(data.recent_orders);
+    } catch (e) { console.error('Error loading dashboard:', e); }
+}
+
+function animateValue(id, start, end, prefix = '') {
+    const el = document.getElementById(id);
+    const duration = 1000, startTime = performance.now();
+    function step(t) {
+        const p = Math.min((t - startTime) / duration, 1);
+        const v = start + (end - start) * p;
+        el.textContent = prefix ? `${prefix}${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : Math.floor(v).toLocaleString();
+        if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+/* ===================== THEME-AWARE HELPERS ===================== */
+function getThemeRoot() {
+  const htmlHas = document.documentElement.hasAttribute('data-theme');
+  const bodyHas = document.body && document.body.hasAttribute('data-theme');
+  if (bodyHas && !htmlHas) return document.body;
+  return document.documentElement;
+}
+function cssVar(name) {
+  const root = getThemeRoot();
+  let val = getComputedStyle(root).getPropertyValue(name).trim();
+  if (!val) val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return val;
+}
+function hexToRgba(hex, a = 1) {
+  let h = (hex || '').replace('#','').trim();
+  if (!h) return `rgba(0,0,0,${a})`;
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return `rgba(${(n>>16)&255}, ${(n>>8)&255}, ${n&255}, ${a})`;
+}
+function watchThemeChanges() {
+  const rebuild = () => {
+    if (window.__lastPerfData) updatePerformanceChart(window.__lastPerfData, true);
+    if (window.__lastStatusData) updateStatusChart(window.__lastStatusData, true);
+  };
+  const obs = new MutationObserver(muts => {
+    for (const m of muts) if (m.type === 'attributes' && m.attributeName === 'data-theme') { rebuild(); break; }
+  });
+  obs.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+  if (document.body) obs.observe(document.body, { attributes:true, attributeFilter:['data-theme'] });
+}
+
+/* ===================== CHARTS ===================== */
+let performanceChart = null;
+let statusChart = null;
+
+function updatePerformanceChart(data, themeChange=false) {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    if (performanceChart) performanceChart.destroy();
+
+    const primary = cssVar('--primary') || '#0066cc';
+    const textSecondary = cssVar('--text-secondary') || '#6b7280';
+    const border = cssVar('--border') || '#e5e7eb';
+    const textPrimary = cssVar('--text-primary') || '#1f2937';
+    const bgPrimary = cssVar('--bg-primary') || '#ffffff';
+
+    performanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Orders',
+                data: data.orders_data,
+                backgroundColor: hexToRgba(primary, 0.8),
+                borderColor: primary,
+                borderWidth: 1,
+                borderRadius: 4,
+                barThickness: 18,
+                maxBarThickness: 20,
+                categoryPercentage: 0.75,
+                barPercentage: 0.8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    titleColor: textPrimary,
+                    bodyColor: textPrimary,
+                    backgroundColor: bgPrimary,
+                    borderColor: border,
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, font: { size: 11 }, color: textSecondary },
+                    grid: { color: hexToRgba(border, 0.6) }
+                },
+                x: {
+                    ticks: { font: { size: 11 }, color: textSecondary },
+                    grid: { color: hexToRgba(border, 0.4) }
+                }
+            }
+        }
+    });
+}
+
+function updateStatusChart(data, themeChange=false) {
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    if (statusChart) statusChart.destroy();
+
+    const bgPrimary = cssVar('--bg-primary') || '#ffffff';
+    const textSecondary = cssVar('--text-secondary') || '#6b7280';
+    // semantic segment colors stay the same across themes
+    const colors = {
+        'Pending': '#f59e0b',
+        'Processing': '#3b82f6',
+        'Shipped': '#8b5cf6',
+        'Delivered': '#16a34a',
+        'Cancelled': '#ef4444'
+    };
+    const backgroundColors = data.labels.map(l => colors[l] || '#6b7280');
+
+    statusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.data,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: bgPrimary
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            radius: '95%',
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 }, color: textSecondary } },
+                tooltip: {
+                    titleColor: cssVar('--text-primary') || '#1f2937',
+                    bodyColor: cssVar('--text-primary') || '#1f2937',
+                    backgroundColor: bgPrimary,
+                    borderColor: cssVar('--border') || '#e5e7eb',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+}
+
+function updateRecentOrders(orders) {
+    const tbody = document.getElementById('recentOrdersBody');
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No recent orders</td></tr>';
+        return;
+    }
+    tbody.innerHTML = orders.map(order => `
+        <tr>
+            <td><strong>${order.order_id}</strong></td>
+            <td>${order.customer_name}</td>
+            <td>${order.product_name}</td>
+            <td><span class="status-badge status-${String(order.order_status || '').toLowerCase()}">${order.order_status}</span></td>
+            <td>${parseFloat(order.total_amount).toFixed(2)}</td>
+            <td>${new Date(order.order_date).toLocaleDateString()}</td>
+        </tr>
+    `).join('');
+}
+</script>
+{% endblock %}

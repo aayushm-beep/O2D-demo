@@ -1,0 +1,846 @@
+{% extends "base.html" %}
+
+{% block title %}Shipments - O2D-Demo{% endblock %}
+
+{% block content %}
+<div class="shipments-container" id="shipmentsRoot">
+  <!-- Header -->
+  <header class="page-header card" role="banner">
+    <div class="header-content">
+      <h1 class="page-title"><i class="fas fa-shipping-fast" aria-hidden="true"></i> Shipment Tracking</h1>
+      <p class="subtitle">Track and manage all shipments in real-time</p>
+    </div>
+    <div class="header-actions" role="toolbar" aria-label="Shipment actions">
+      <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt" aria-hidden="true"></i><span>Refresh</span></button>
+      <button class="btn btn-ghost" id="exportBtn"><i class="fas fa-file-export" aria-hidden="true"></i><span>Export CSV</span></button>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <section class="stats-grid" aria-label="Shipment stats">
+    <article class="stat-card card">
+      <div class="stat-icon bg-blue">
+        <i class="fas fa-box" aria-hidden="true"></i>
+      </div>
+      <div class="stat-info">
+        <h4>Total Shipments</h4>
+        <p class="stat-value" id="totalShipments">0</p>
+      </div>
+    </article>
+    <article class="stat-card card">
+      <div class="stat-icon bg-orange">
+        <i class="fas fa-truck" aria-hidden="true"></i>
+      </div>
+      <div class="stat-info">
+        <h4>In Transit</h4>
+        <p class="stat-value" id="inTransit">0</p>
+      </div>
+    </article>
+    <article class="stat-card card">
+      <div class="stat-icon bg-green">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
+      </div>
+      <div class="stat-info">
+        <h4>Delivered</h4>
+        <p class="stat-value" id="delivered">0</p>
+      </div>
+    </article>
+    <article class="stat-card card">
+      <div class="stat-icon bg-red">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+      </div>
+      <div class="stat-info">
+        <h4>Delayed</h4>
+        <p class="stat-value" id="delayed">0</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- Filters -->
+  <section class="filters-panel card" aria-label="Filters">
+    <div class="filter-group">
+      <div class="filter-item">
+        <label for="searchShipment"><i class="fas fa-search" aria-hidden="true"></i> Search</label>
+        <div class="input-with-icon">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input id="searchShipment" class="form-control" placeholder="Track by ID, order, or tracking number…" type="search" autocomplete="off" />
+        </div>
+      </div>
+      <div class="filter-item">
+        <label for="statusFilter"><i class="fas fa-tasks" aria-hidden="true"></i> Status</label>
+        <select id="statusFilter" class="form-control">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in-transit">In Transit</option>
+          <option value="delivered">Delivered</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="carrierFilter"><i class="fas fa-truck" aria-hidden="true"></i> Carrier</label>
+        <select id="carrierFilter" class="form-control">
+          <option value="">All Carriers</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="sortBy"><i class="fas fa-sort" aria-hidden="true"></i> Sort</label>
+        <select id="sortBy" class="form-control">
+          <option value="shipdate-desc">Ship Date (Newest)</option>
+          <option value="shipdate-asc">Ship Date (Oldest)</option>
+          <option value="delivery-desc">Delivery Date (Newest)</option>
+          <option value="delivery-asc">Delivery Date (Oldest)</option>
+          <option value="status-asc">Status (A→Z)</option>
+          <option value="carrier-asc">Carrier (A→Z)</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" id="clearFilters"><i class="fas fa-times" aria-hidden="true"></i> Clear</button>
+      <div class="spacer"></div>
+      <div class="page-size">
+        <label for="pageSize" class="sr-only">Rows per page</label>
+        <select id="pageSize" class="form-control">
+          <option>10</option>
+          <option selected>15</option>
+          <option>25</option>
+          <option>50</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <div class="table-container card">
+    <div class="table-scroll">
+      <table class="shipments-table">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Order ID</th>
+            <th>Carrier</th>
+            <th>Tracking Number</th>
+            <th>Origin</th>
+            <th>Destination</th>
+            <th>Ship Date</th>
+            <th>Delivery Date</th>
+            <th>Status</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="shipmentsTableBody">
+          <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <div id="pager" class="pagination-controls"></div>
+      <span id="pageInfo" class="page-info">Page 1 of 1</span>
+    </div>
+  </div>
+</div>
+
+<!-- Track Shipment Modal -->
+<div id="trackModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="trackTitle" aria-hidden="true">
+  <div class="modal-overlay" data-close="true"></div>
+  <div class="modal-content modal-large" role="document">
+    <div class="modal-header">
+      <h2 id="trackTitle"><i class="fas fa-route" aria-hidden="true"></i> Shipment Tracking</h2>
+      <button class="modal-close" data-close="true" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="modal-body" id="trackingContent">
+      <!-- Tracking content injected here -->
+    </div>
+  </div>
+</div>
+
+<style>
+.shipments-container{ 
+  padding: var(--space-xl); 
+  background: var(--bg-secondary); 
+  color: var(--text-primary); 
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-xl);
+  position: sticky; 
+  top: 0; 
+  z-index: 5;
+}
+
+.page-title { 
+  margin: 0; 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+  font-size: var(--font-2xl);
+}
+
+.subtitle { 
+  margin: var(--space-xs) 0 0; 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+.header-actions { 
+  display: flex; 
+  gap: var(--space-md); 
+}
+
+.stats-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+  gap: var(--space-md); 
+  margin-bottom: var(--space-xl); 
+}
+
+.stat-card { 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+  padding: var(--space-lg);
+}
+
+.stat-icon { 
+  width: 48px; 
+  height: 48px; 
+  border-radius: var(--radius-md); 
+  display: grid; 
+  place-items: center; 
+  color: white; 
+  font-size: var(--font-xl); 
+}
+
+.bg-blue { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+.bg-orange { background: linear-gradient(135deg, var(--warning), #d97706); }
+.bg-green { background: linear-gradient(135deg, var(--success), #16a34a); }
+.bg-red { background: linear-gradient(135deg, var(--danger), #dc2626); }
+
+.stat-info h4 { 
+  margin: 0 0 var(--space-xs); 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm); 
+  font-weight: 600; 
+}
+
+.stat-value { 
+  margin: 0; 
+  font-size: var(--font-xl); 
+  font-weight: 700; 
+  color: var(--text-primary);
+}
+
+.filters-panel { 
+  margin-bottom: var(--space-xl); 
+  padding: var(--space-lg);
+}
+
+.filter-group { 
+  display: flex; 
+  gap: var(--space-md); 
+  flex-wrap: wrap; 
+  align-items: flex-end; 
+}
+
+.filter-item { 
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--space-xs); 
+}
+
+.filter-item label { 
+  font-size: var(--font-xs); 
+  color: var(--text-secondary); 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-xs); 
+}
+
+.input-with-icon { 
+  position: relative; 
+}
+
+.input-with-icon i { 
+  position: absolute; 
+  left: var(--space-sm); 
+  top: 50%; 
+  transform: translateY(-50%); 
+  color: var(--text-tertiary); 
+}
+
+.input-with-icon input { 
+  padding-left: calc(var(--space-md) + var(--space-sm)); 
+  min-width: 200px;
+}
+
+.spacer { 
+  flex: 1; 
+}
+
+.page-size { 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-xs); 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+.page-size select {
+  min-width: auto;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.table-container { 
+  overflow: hidden;
+  margin-bottom: var(--space-xl);
+}
+
+.table-scroll { 
+  overflow: auto; 
+}
+
+.shipments-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  min-width: 800px;
+}
+
+.shipments-table thead { 
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+  color: white; 
+}
+
+.shipments-table th { 
+  padding: var(--space-sm) var(--space-md); 
+  text-align: left; 
+  font-weight: 600; 
+  font-size: var(--font-xs); 
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.shipments-table td { 
+  padding: var(--space-sm) var(--space-md); 
+  border-bottom: 1px solid var(--border-light); 
+  vertical-align: middle; 
+  font-size: var(--font-sm); 
+}
+
+.shipments-table tbody tr:hover { 
+  background: var(--bg-tertiary); 
+}
+
+.actions { 
+  width: 100px; 
+  text-align: center; 
+}
+
+.status-badge { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: var(--space-xs); 
+  padding: 0.188rem 0.438rem; 
+  border-radius: 12px; 
+  font-size: 0.625rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.3px; 
+}
+
+.status-pending { 
+  background: #f3f4f6; 
+  color: #4b5563; 
+}
+
+.status-in-transit { 
+  background: #dbeafe; 
+  color: #1e40af; 
+}
+
+.status-delivered { 
+  background: #d1fae5; 
+  color: #065f46; 
+}
+
+.status-failed { 
+  background: #fee2e2; 
+  color: #991b1b; 
+}
+
+/* Timeline */
+.tracking-timeline { 
+  position: relative; 
+  padding-left: 2rem; 
+}
+
+.timeline-item { 
+  position: relative; 
+  padding-bottom: 1.25rem; 
+}
+
+.timeline-item::before { 
+  content: ''; 
+  position: absolute; 
+  left: -2rem; 
+  top: 0; 
+  width: 2px; 
+  height: 100%; 
+  background: var(--border); 
+}
+
+.timeline-item:last-child::before { 
+  display: none; 
+}
+
+.timeline-dot { 
+  position: absolute; 
+  left: -2.5rem; 
+  top: .1rem; 
+  width: 1rem; 
+  height: 1rem; 
+  background: white; 
+  border: 3px solid var(--primary); 
+  border-radius: 50%; 
+}
+
+.timeline-dot.active { 
+  background: var(--primary); 
+}
+
+.timeline-content { 
+  background: var(--bg-tertiary); 
+  padding: var(--space-md); 
+  border-radius: var(--radius-sm); 
+}
+
+.timeline-content h4 { 
+  margin: 0 0 var(--space-xs); 
+  color: var(--text-primary); 
+}
+
+.timeline-content p { 
+  margin: 0; 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm); 
+}
+
+.timeline-time { 
+  color: var(--text-tertiary); 
+  font-size: var(--font-xs); 
+  margin-top: var(--space-xs); 
+}
+
+/* Pagination */
+.pagination { 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-sm); 
+  justify-content: space-between; 
+  padding: var(--space-md) var(--space-sm); 
+}
+
+.page-info { 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+.page-btn { 
+  border: 1px solid var(--border); 
+  background: var(--bg-primary); 
+  color: var(--text-primary); 
+  padding: var(--space-xs) var(--space-sm); 
+  border-radius: var(--radius-sm); 
+  cursor: pointer; 
+  font-size: var(--font-sm);
+}
+
+.page-btn.active { 
+  background: var(--primary); 
+  color: white; 
+  border-color: transparent; 
+}
+
+.page-btn:disabled { 
+  opacity: .5; 
+  cursor: not-allowed; 
+}
+
+/* Modal */
+.modal[aria-hidden="true"] { 
+  display: none; 
+}
+
+.modal { 
+  position: fixed; 
+  inset: 0; 
+  z-index: 50; 
+  display: grid; 
+  place-items: center; 
+}
+
+.modal-overlay { 
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,.3); 
+}
+
+.modal-content { 
+  position: relative; 
+  background: var(--bg-primary); 
+  color: var(--text-primary); 
+  border-radius: var(--radius-lg); 
+  width: min(900px, 94vw); 
+  border: 1px solid var(--border); 
+  box-shadow: var(--shadow-xl); 
+}
+
+.modal-large .modal-body { 
+  max-height: 70vh; 
+  overflow: auto; 
+}
+
+.modal-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: var(--space-md) var(--space-lg); 
+  border-bottom: 1px solid var(--border); 
+}
+
+.modal-close { 
+  font-size: 1.5rem; 
+  background: transparent; 
+  border: none; 
+  color: var(--text-secondary); 
+  cursor: pointer; 
+  padding: var(--space-xs) var(--space-sm); 
+}
+
+.modal-body { 
+  padding: var(--space-md) var(--space-lg) var(--space-lg); 
+}
+
+/* Skeleton */
+.skeleton-row td { 
+  padding: var(--space-md); 
+}
+
+.skeleton { 
+  height: 16px; 
+  border-radius: var(--radius-sm); 
+  background: linear-gradient(90deg, var(--border) 0%, var(--bg-tertiary) 50%, var(--border) 100%); 
+  animation: shimmer 1.2s infinite; 
+}
+
+@keyframes shimmer { 
+  0% { background-position: -200% 0; } 
+  100% { background-position: 200% 0; } 
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .shipments-container {
+    padding: var(--space-md);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+  
+  .header-actions {
+    justify-content: center;
+  }
+  
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-item {
+    width: 100%;
+  }
+  
+  .input-with-icon input,
+  .filter-item select,
+  .page-size select {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .pagination {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .page-info {
+    order: -1;
+  }
+}
+</style>
+
+<script>
+(()=>{
+  let allShipments = [];
+  let filtered = [];
+  let currentPage = 1;
+  let pageSize = 15;
+
+  // Elements
+  const tbody = document.getElementById('shipmentsTableBody');
+  const pager = document.getElementById('pager');
+  const pageInfo = document.getElementById('pageInfo');
+  const pageSizeEl = document.getElementById('pageSize');
+
+  const searchEl = document.getElementById('searchShipment');
+  const statusFilter = document.getElementById('statusFilter');
+  const carrierFilter = document.getElementById('carrierFilter');
+  const sortBy = document.getElementById('sortBy');
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  const trackModal = document.getElementById('trackModal');
+  const trackingContent = document.getElementById('trackingContent');
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init(){
+    refreshBtn.addEventListener('click', () => { loadShipments(); toast('Shipments refreshed', 'success'); });
+    exportBtn.addEventListener('click', exportCSV);
+
+    ;['input','change'].forEach(evt => {
+      searchEl.addEventListener(evt, debounce(applyFilters, 200));
+      statusFilter.addEventListener(evt, applyFilters);
+      carrierFilter.addEventListener(evt, applyFilters);
+      sortBy.addEventListener(evt, applyFilters);
+    });
+
+    pageSizeEl.addEventListener('change', () => { pageSize = Number(pageSizeEl.value); currentPage = 1; renderTable(); });
+
+    trackModal.addEventListener('click', (e) => { if (e.target.dataset.close !== undefined || e.target.classList.contains('modal-overlay')) closeTrackModal(); });
+
+    loadShipments();
+  }
+
+  async function loadShipments(){
+    showSkeleton(true);
+    try{
+      const res = await fetch('/api/shipments');
+      const data = await res.json();
+      allShipments = Array.isArray(data?.shipments) ? data.shipments : [];
+      hydrateCarrierFilter(allShipments);
+      updateStats(allShipments);
+      applyFilters();
+    }catch(err){
+      console.error('Error loading shipments:', err);
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:1.2rem;">Failed to load shipments</td></tr>';
+    }finally{
+      showSkeleton(false);
+    }
+  }
+
+  function showSkeleton(show){ tbody.querySelectorAll('.skeleton-row').forEach(r => r.style.display = show ? '' : 'none'); }
+
+  function hydrateCarrierFilter(list){
+    const carriers = [...new Set(list.map(s => s.carrier).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+    const current = carrierFilter.value;
+    carrierFilter.innerHTML = '<option value="">All Carriers</option>' + carriers.map(c => `<option value="${escapeHtml(c)}" ${c===current?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  }
+
+  function updateStats(list){
+    byId('totalShipments').textContent = list.length.toLocaleString('en-IN');
+    byId('inTransit').textContent = list.filter(s => (s.status||'').toLowerCase() === 'in-transit').length.toLocaleString('en-IN');
+    byId('delivered').textContent = list.filter(s => (s.status||'').toLowerCase() === 'delivered').length.toLocaleString('en-IN');
+    byId('delayed').textContent = list.filter(s => (s.status||'').toLowerCase() === 'failed').length.toLocaleString('en-IN');
+  }
+
+  function applyFilters(){
+    const q = searchEl.value.trim().toLowerCase();
+    const status = statusFilter.value;
+    const carrier = carrierFilter.value;
+
+    filtered = allShipments.filter(s => {
+      const hay = `${s.shipment_id||''} ${s.order_id||''} ${s.tracking_number||''}`.toLowerCase();
+      if (q && !hay.includes(q)) return false;
+      if (status && (String(s.status||'').toLowerCase() !== status)) return false;
+      if (carrier && s.carrier !== carrier) return false;
+      return true;
+    });
+
+    sortFiltered();
+    currentPage = 1;
+    renderTable();
+  }
+
+  function sortFiltered(){
+    const [key, dir] = sortBy.value.split('-');
+    const mul = dir === 'asc' ? 1 : -1;
+    filtered.sort((a,b) => {
+      if (key === 'shipdate') return mul * (dateNum(a.ship_date) - dateNum(b.ship_date));
+      if (key === 'delivery') return mul * (dateNum(a.delivery_date) - dateNum(b.delivery_date));
+      if (key === 'status') return mul * String(a.status||'').localeCompare(String(b.status||''));
+      if (key === 'carrier') return mul * String(a.carrier||'').localeCompare(String(b.carrier||''));
+      return 0;
+    });
+  }
+
+  function renderTable(){
+    const total = filtered.length;
+    if (!total){
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:1.2rem;color:var(--text-secondary);">No shipments found</td></tr>';
+      renderPager(0,1);
+      return;
+    }
+
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    const start = (currentPage-1) * pageSize;
+    const slice = filtered.slice(start, start + pageSize);
+
+    tbody.innerHTML = slice.map(rowTpl).join('');
+    renderPager(total, pages);
+  }
+
+  function rowTpl(s){
+    const status = String(s.status || 'pending').toLowerCase();
+    return `
+      <tr>
+        <td><strong>${escapeHtml(s.shipment_id || '')}</strong></td>
+        <td>${escapeHtml(s.order_id || 'N/A')}</td>
+        <td>${escapeHtml(s.carrier || 'N/A')}</td>
+        <td>${escapeHtml(s.tracking_number || 'N/A')}</td>
+        <td>${escapeHtml(s.origin || 'N/A')}</td>
+        <td>${escapeHtml(s.destination || 'N/A')}</td>
+        <td>${fmtDate(s.ship_date)}</td>
+        <td>${fmtDate(s.delivery_date)}</td>
+        <td><span class="badge status-badge status-${status}">${escapeHtml(s.status || 'pending')}</span></td>
+        <td class="actions">
+          <button class="btn btn-outline btn-sm" title="Track" data-track="${escapeAttr(s.shipment_id)}"><i class="fas fa-map-marked-alt" aria-hidden="true"></i> Track</button>
+        </td>
+      </tr>`;
+  }
+
+  // Pagination
+  function renderPager(total, pages){
+    const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+    const nextDisabled = currentPage >= pages ? 'disabled' : '';
+    let html = `<button class=\"page-btn\" ${prevDisabled} data-page=\"${currentPage-1}\"><i class=\"fas fa-chevron-left\" aria-hidden=\"true\"></i></button>`;
+    const windowSize = 5; const start = Math.max(1, currentPage - Math.floor(windowSize/2)); const end = Math.min(pages, start + windowSize - 1);
+    for (let i=start;i<=end;i++){ html += `<button class=\"page-btn ${i===currentPage?'active':''}\" data-page=\"${i}\">${i}</button>`; }
+    html += `<button class=\"page-btn\" ${nextDisabled} data-page=\"${currentPage+1}\"><i class=\"fas fa-chevron-right\" aria-hidden=\"true\"></i></button>`;
+    pager.innerHTML = html;
+    pageInfo.textContent = `Page ${Math.min(currentPage,pages)} of ${Math.max(pages,1)}`;
+  }
+
+  pager.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    const p = Number(btn.getAttribute('data-page'));
+    if (Number.isFinite(p) && p >= 1){ currentPage = p; renderTable(); }
+  });
+
+  // Delegated tracking
+  tbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-track]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-track');
+    const s = allShipments.find(x => String(x.shipment_id) === String(id));
+    if (s) openTrackModal(s);
+  });
+
+  function openTrackModal(s){
+    trackModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    trackingContent.innerHTML = `
+      <div class="track-summary">
+        <div style="display:flex; gap:var(--space-md); flex-wrap:wrap; margin-bottom:var(--space-md);">
+          <div><strong>Shipment:</strong> ${escapeHtml(s.shipment_id||'')}</div>
+          <div><strong>Tracking:</strong> ${escapeHtml(s.tracking_number||'')}</div>
+          <div><strong>Carrier:</strong> ${escapeHtml(s.carrier||'')}</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md);">
+          <div class="timeline-content"><strong>Origin</strong><div>${escapeHtml(s.origin||'-')}</div></div>
+          <div class="timeline-content"><strong>Destination</strong><div>${escapeHtml(s.destination||'-')}</div></div>
+        </div>
+      </div>
+
+      <div class="tracking-timeline" style="margin-top:var(--space-md);">
+        ${timelineTpl(s)}
+      </div>`;
+  }
+
+  function closeTrackModal(){ trackModal.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }
+  window.closeTrackModal = closeTrackModal;
+
+  function timelineTpl(s){
+    const steps = [
+      { key:'ordered', title:'Order Placed', desc:'Order confirmed and being prepared for shipment', time: s.ship_date },
+      { key:'shipped', title:'Shipped', desc:`Package handed to ${escapeHtml(s.carrier||'carrier')}`, time: s.ship_date },
+      { key:'in-transit', title:'In Transit', desc:'Package is on the way to destination', time: 'En route' },
+      { key:'delivered', title:'Delivered', desc:'Package delivered successfully', time: s.delivery_date || 'Pending' }
+    ];
+    const cur = (s.status||'pending').toLowerCase();
+    return steps.map(step => `
+      <div class="timeline-item">
+        <div class="timeline-dot ${step.key === 'ordered' || step.key === 'shipped' || cur === step.key || (cur==='delivered' && step.key==='delivered') || (cur==='in-transit' && (step.key==='in-transit')) ? 'active':''}"></div>
+        <div class="timeline-content">
+          <h4>${step.title}</h4>
+          <p>${step.desc}</p>
+          <div class="timeline-time">${fmtDate(step.time)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function exportCSV(){
+    const rows = [['Shipment ID','Order ID','Carrier','Tracking Number','Origin','Destination','Ship Date','Delivery Date','Status']];
+    filtered.forEach(s => rows.push([
+      s.shipment_id||'', s.order_id||'', s.carrier||'', s.tracking_number||'', s.origin||'', s.destination||'', plainDate(s.ship_date), plainDate(s.delivery_date), s.status||''
+    ]));
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'shipments.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    toast('Exported current view', 'success');
+  }
+
+  // Utils
+  function csvEscape(v){ const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+  function escapeAttr(s){ return escapeHtml(s).replace(/\s/g,' '); }
+  function dateNum(d){ const t = Date.parse(d); return Number.isFinite(t) ? t : 0; }
+  function fmtDate(d){ if (!d) return 'N/A'; const t = Date.parse(d); if (!Number.isFinite(t)) return escapeHtml(String(d)); return new Date(t).toLocaleDateString('en-IN'); }
+  function plainDate(d){ if (!d) return ''; const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toISOString().slice(0,10) : String(d); }
+  function byId(id){ return document.getElementById(id); }
+  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+
+  // Toast
+  let toastT; function toast(msg, type='info'){
+    clearTimeout(toastT);
+    let el = document.getElementById('app-toast');
+    if (!el){ el = document.createElement('div'); el.id='app-toast'; el.style.position='fixed'; el.style.right='1rem'; el.style.bottom='1rem'; el.style.zIndex='60'; document.body.appendChild(el); }
+    el.innerHTML = `<div style="padding:.75rem 1rem;border-radius:.75rem;box-shadow:0 4px 14px rgba(0,0,0,.15);border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);"><strong style="margin-right:.5rem;">${type==='error'?'Error':type==='success'?'Success':'Notice'}:</strong> ${escapeHtml(msg)}</div>`;
+    toastT = setTimeout(()=>{ el.innerHTML=''; }, 2200);
+  }
+
+  // expose for legacy usage
+  window.refreshShipments = loadShipments;
+  window.exportShipments = exportCSV;
+  window.trackShipment = (id) => { const s = allShipments.find(x => String(x.shipment_id) === String(id)); if (s) openTrackModal(s); };
+})();
+</script>
+{% endblock %}

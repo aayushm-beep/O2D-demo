@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}Orders Management - O2D-Demo{% endblock %}
+
+{% block extra_css %}
+<style>
+.orders-container {
+    padding: var(--space-xl);
+    animation: fadeIn 0.4s ease-in;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 2px solid var(--border);
+}
+
+.header-content h1 {
+    font-size: var(--font-xl);
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 0.188rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filters-panel {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.filter-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-item label {
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.313rem;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.column-selector-panel {
+    position: relative;
+    margin-bottom: var(--space-md);
+}
+
+.column-selector-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    padding: var(--space-md);
+    z-index: 100;
+    min-width: 480px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    margin-top: 0.313rem;
+}
+
+.column-selector-dropdown h4 {
+    font-size: var(--font-md);
+    margin-bottom: var(--space-sm);
+}
+
+.column-checkboxes {
+    margin-bottom: var(--space-md);
+}
+
+.column-checkbox-label {
+    font-size: var(--font-sm);
+    padding: 0.25rem 0;
+}
+
+.column-selector-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border);
+}
+
+.table-container {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-sm);
+    min-width: 800px;
+}
+
+.orders-table thead {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.orders-table th {
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-xs);
+    white-space: nowrap;
+    position: sticky;
+    color: white;
+    top: 0;
+    z-index: 1;
+}
+
+.orders-table td {
+    padding: 0.438rem 0.625rem;
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--font-sm);
+}
+
+.orders-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.loading-row td {
+    text-align: center;
+    padding: 2rem;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 0.313rem;
+}
+
+.page-numbers button {
+    padding: 0.313rem 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-xs);
+    transition: all var(--transition-fast);
+}
+
+.page-numbers button:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.page-numbers button.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.page-numbers button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-size {
+    display: flex;
+    align-items: center;
+    gap: 0.313rem;
+    font-size: var(--font-sm);
+}
+
+.pagination-size label {
+    color: var(--text-secondary);
+}
+
+.pagination-size select {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    margin: 3% auto;
+    border-radius: var(--radius-md);
+    width: 90%;
+    max-width: 1000px;
+    max-height: 85vh;
+    overflow: auto;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: var(--font-lg);
+    font-weight: 600;
+}
+
+.modal-close {
+    font-size: var(--font-xl);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.25rem 0.5rem;
+}
+
+.modal-body {
+    padding: var(--space-md);
+}
+
+.detail-section {
+    margin-bottom: var(--space-md);
+}
+
+.detail-section h3 {
+    font-size: var(--font-md);
+    margin-bottom: var(--space-sm);
+    color: var(--text-primary);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-sm);
+}
+
+.detail-row {
+    padding: 0.438rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-label {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.detail-value {
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+    margin-top: 0.188rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+    
+    .filter-group {
+        grid-template-columns: 1fr;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-shopping-cart"></i> Orders Management</h1>
+            <p class="subtitle">Comprehensive order tracking and management system</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary btn-sm" onclick="refreshOrders()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button class="btn btn-success btn-sm" onclick="exportOrders()"><i class="fas fa-file-export"></i> Export CSV</button>
+            <!-- Example: on products.html header-actions -->
+            <button class="btn btn-secondary" onclick="fetch('/admin/sync/export/products',{method:'POST'}).then(r=>r.json()).then(j=>alert('Exported '+j.rows+' rows'))">Export to Sheet</button>
+            <button class="btn btn-secondary" onclick="fetch('/admin/sync/import/products',{method:'POST'}).then(r=>r.json()).then(j=>alert('Imported: '+(j.inserted||0)+' inserted, '+(j.updated||0)+' updated'))">Import from Sheet</button>
+
+        </div>
+    </div>
+
+    <div class="filters-panel">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label><i class="fas fa-search"></i> Search</label>
+                <input type="text" id="searchInput" placeholder="Search orders, customers, products..." class="form-control">
+            </div>
+            <div class="filter-item">
+                <label><i class="fas fa-tasks"></i> Status</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fas fa-exclamation-circle"></i> Priority</label>
+                <select id="priorityFilter" class="form-control">
+                    <option value="">All Priorities</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fas fa-calendar"></i> Date From</label>
+                <input type="date" id="dateFrom" class="form-control">
+            </div>
+            <div class="filter-item">
+                <label>Date To</label>
+                <input type="date" id="dateTo" class="form-control">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button class="btn btn-secondary btn-sm" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="applyFilters()"><i class="fas fa-filter"></i> Apply</button>
+        </div>
+    </div>
+
+    <div class="column-selector-panel">
+        <button class="btn btn-outline btn-sm" onclick="toggleColumnSelector()">
+            <i class="fas fa-columns"></i> Customize Columns
+        </button>
+        <div id="columnSelector" class="column-selector-dropdown" style="display:none;">
+            <h4>Select Columns to Display</h4>
+            <small id="selectedCount" style="display:block;margin:-.25rem 0 0.75rem;color:var(--text-secondary);">Loading...</small>
+            <div class="column-checkboxes" id="columnCheckboxes"></div>
+            <div class="column-selector-actions">
+                <button class="btn btn-sm btn-secondary" onclick="selectAllColumns()">Select All</button>
+                <button class="btn btn-sm btn-secondary" onclick="deselectAllColumns()">Deselect All</button>
+                <button class="btn btn-sm btn-primary" onclick="applyColumnSelection()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table class="orders-table" id="ordersTable">
+                <thead id="ordersTableHead"></thead>
+                <tbody id="ordersTableBody">
+                    <tr class="loading-row">
+                        <td>
+                            <div class="spinner"></div>
+                            <p>Loading orders...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="pagination-container">
+        <div class="pagination-info"><span id="paginationInfo">Showing 0 of 0 orders</span></div>
+        <div class="pagination-controls">
+            <button class="btn btn-sm" onclick="previousPage()" id="prevBtn"><i class="fas fa-chevron-left"></i> Previous</button>
+            <span class="page-numbers" id="pageNumbers"></span>
+            <button class="btn btn-sm" onclick="nextPage()" id="nextBtn">Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="pagination-size">
+            <label>Show:</label>
+            <select id="pageSizeSelect" onchange="changePageSize()">
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-file-invoice"></i> Order Details</h2>
+            <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="orderDetailsContent"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/orders.js"></script>
+{% endblock %}

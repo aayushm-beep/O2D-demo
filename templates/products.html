@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Products - O2D-Demo{% endblock %}
+{% block extra_css %}
+<style>
+.page-container { padding: var(--space-xl); background: var(--bg-secondary); color: var(--text-primary); }
+.page-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:var(--space-sm); border-bottom:2px solid var(--border); margin-bottom:var(--space-md); }
+.page-title { margin:0.188rem 0; display:flex; align-items:center; gap:0.5rem; font-size:var(--font-xl); font-weight:700; }
+.subtitle { margin:0; color:var(--text-secondary); font-size:var(--font-sm); }
+.header-actions { display:flex; gap:0.5rem; }
+.stats-row { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:var(--space-md); margin:var(--space-md) 0; }
+.stat-card { background: var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-md); display:flex; gap:var(--space-sm); align-items:center; box-shadow: var(--shadow-sm); }
+.stat-card i { font-size:var(--font-lg); }
+.stat-card.primary i { color:#3b82f6; } 
+.stat-card.success i { color:#16a34a; } 
+.stat-card.warning i { color:#d97706; } 
+.stat-card.info i { color:#7c3aed; }
+.stat-card h3 { margin:0.125rem 0; font-size:var(--font-2xl); font-weight:800; }
+.stat-card p { margin:0; color:var(--text-secondary); font-size:var(--font-xs); }
+.table-controls { display:flex; gap:var(--space-sm); align-items:center; flex-wrap:wrap; margin-bottom:var(--space-sm); }
+.input-with-icon { position:relative; }
+.input-with-icon i { position:absolute; left:0.5rem; top:50%; transform:translateY(-50%); color:var(--text-secondary); font-size:var(--font-sm); }
+.input-with-icon input { padding:0.438rem 0.625rem 0.438rem 2rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); min-width:220px; }
+.filter-select { padding:0.438rem 0.625rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); font-size:var(--font-sm); }
+.table-controls .spacer { flex:1; }
+.page-size { display:flex; align-items:center; gap:0.313rem; color:var(--text-secondary); font-size:var(--font-sm); }
+.table-wrap { background: var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-md); overflow:auto; }
+.data-table { width:100%; border-collapse: separate; border-spacing:0; min-width: 760px; }
+.data-table thead th { position: sticky; top: 0; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color:white; z-index:1; text-align:left; padding:0.5rem 0.625rem; font-size:var(--font-xs); font-weight:700; }
+.data-table tbody td { padding:0.5rem 0.625rem; border-bottom:1px solid var(--border-light); vertical-align: middle; font-size:var(--font-sm); }
+.data-table tbody tr:hover { background: var(--bg-secondary); }
+.data-table .numeric { text-align:right; }
+.data-table .actions { width: 70px; text-align:center; }
+.cell-title { font-weight:700; }
+.cell-sub { color: var(--text-secondary); font-size:var(--font-xs); }
+.badge { display:inline-flex; align-items:center; gap:0.25rem; padding:0.188rem 0.438rem; border-radius:999px; font-size:0.625rem; font-weight:700; }
+.badge .dot { width:0.375rem; height:0.375rem; border-radius:999px; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-success .dot { background: #16a34a; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-warning .dot { background: #d97706; }
+.pagination { display:flex; align-items:center; gap:0.5rem; justify-content:space-between; padding:var(--space-sm) 0; }
+.page-info { color: var(--text-secondary); font-size:var(--font-sm); }
+.pagination-controls { display:flex; gap:0.313rem; }
+.page-btn { border:1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); padding:0.313rem 0.5rem; border-radius:var(--radius-sm); cursor:pointer; font-size:var(--font-xs); }
+.page-btn.active { background: var(--primary); color:white; }
+.page-btn:disabled { opacity:0.5; cursor:not-allowed; }
+@media (max-width: 1024px) { .stats-row { grid-template-columns: repeat(2, 1fr);} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container" id="productsRoot">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-box-open"></i> Product Catalog</h1>
+      <p class="subtitle">Manage inventory and product information</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+      <button class="btn btn-ghost btn-sm" id="exportBtn"><i class="fas fa-file-export"></i> Export</button>
+    </div>
+  </header>
+
+  <section class="stats-row">
+    <article class="stat-card primary">
+      <i class="fas fa-boxes"></i>
+      <div><h3 id="totalProducts">0</h3><p>Total Products</p></div>
+    </article>
+    <article class="stat-card success">
+      <i class="fas fa-check-circle"></i>
+      <div><h3 id="inStock">0</h3><p>In Stock</p></div>
+    </article>
+    <article class="stat-card warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      <div><h3 id="lowStock">0</h3><p>Low Stock</p></div>
+    </article>
+    <article class="stat-card info">
+      <i class="fas fa-tags"></i>
+      <div><h3 id="categories">0</h3><p>Categories</p></div>
+    </article>
+  </section>
+
+  <div class="table-controls">
+    <div class="input-with-icon">
+      <i class="fas fa-search"></i>
+      <input type="search" id="searchProducts" placeholder="Search products..." autocomplete="off" />
+    </div>
+    <select id="categoryFilter" class="filter-select">
+      <option value="">All Categories</option>
+    </select>
+    <select id="statusFilter" class="filter-select">
+      <option value="">All Statuses</option>
+      <option value="in">In Stock</option>
+      <option value="low">Low Stock</option>
+    </select>
+    <select id="sortBy" class="filter-select">
+      <option value="name-asc">Name (A→Z)</option>
+      <option value="name-desc">Name (Z→A)</option>
+      <option value="price-asc">Price (Low→High)</option>
+      <option value="price-desc">Price (High→Low)</option>
+    </select>
+    <button class="btn btn-outline btn-sm" id="clearFilters"><i class="fas fa-times"></i> Clear</button>
+    <div class="spacer"></div>
+    <div class="page-size">
+      <label>Show:</label>
+      <select id="pageSize">
+        <option>10</option>
+        <option selected>15</option>
+        <option>25</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Product ID</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Brand</th>
+          <th class="numeric">Price</th>
+          <th class="numeric">Stock</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="productsBody">
+        <tr><td colspan="7" style="text-align:center;padding:1.5rem;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-controls" id="productPagination"></div>
+    <span id="productPageInfo" class="page-info">Page 1 of 1</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(()=>{
+  let allProducts = [];
+  let filtered = [];
+  let currentPage = 1;
+  let pageSize = 15;
+
+  const tbody = document.getElementById('productsBody');
+  const paginationEl = document.getElementById('productPagination');
+  const pageInfoEl = document.getElementById('productPageInfo');
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init(){
+    document.getElementById('searchProducts').addEventListener('input', debounce(applyFilters, 200));
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('sortBy').addEventListener('change', applyFilters);
+    document.getElementById('pageSize').addEventListener('change', () => { pageSize = Number(document.getElementById('pageSize').value); currentPage = 1; renderTable(); });
+    document.getElementById('refreshBtn').addEventListener('click', loadProducts);
+    document.getElementById('exportBtn').addEventListener('click', exportCSV);
+    document.getElementById('clearFilters').addEventListener('click', () => { 
+      document.getElementById('searchProducts').value = ''; 
+      document.getElementById('categoryFilter').value = ''; 
+      document.getElementById('statusFilter').value = ''; 
+      applyFilters(); 
+    });
+    loadProducts();
+  }
+
+  async function loadProducts(){
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      allProducts = Array.isArray(data?.products) ? data.products : [];
+      hydrateFilters();
+      updateStats();
+      applyFilters();
+    } catch(e){
+      console.error(e);
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">Failed to load</td></tr>';
+    }
+  }
+
+  function hydrateFilters(){
+    const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
+    document.getElementById('categoryFilter').innerHTML = '<option value="">All Categories</option>' + categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  }
+
+  function updateStats(){
+    document.getElementById('totalProducts').textContent = allProducts.length;
+    document.getElementById('inStock').textContent = allProducts.filter(p => Number(p.stock_quantity) > Number(p.reorder_level)).length;
+    document.getElementById('lowStock').textContent = allProducts.filter(p => Number(p.stock_quantity) <= Number(p.reorder_level)).length;
+    document.getElementById('categories').textContent = new Set(allProducts.map(p => p.category).filter(Boolean)).size;
+  }
+
+  function applyFilters(){
+    const q = document.getElementById('searchProducts').value.trim().toLowerCase();
+    const cat = document.getElementById('categoryFilter').value;
+    const status = document.getElementById('statusFilter').value;
+
+    filtered = allProducts.filter(p => {
+      const hay = `${p.name||''} ${p.product_id||''} ${p.brand||''}`.toLowerCase();
+      if (q && !hay.includes(q)) return false;
+      if (cat && p.category !== cat) return false;
+      const isLow = Number(p.stock_quantity) <= Number(p.reorder_level);
+      if (status === 'in' && isLow) return false;
+      if (status === 'low' && !isLow) return false;
+      return true;
+    });
+
+    sortFiltered();
+    currentPage = 1;
+    renderTable();
+  }
+
+  function sortFiltered(){
+    const [key, dir] = document.getElementById('sortBy').value.split('-');
+    filtered.sort((a,b) => {
+      if (key === 'price') return dir==='asc' ? (num(a.unit_price) - num(b.unit_price)) : (num(b.unit_price) - num(a.unit_price));
+      return dir==='asc' ? String(a.name||'').localeCompare(String(b.name||'')) : String(b.name||'').localeCompare(String(a.name||''));
+    });
+  }
+
+  function renderTable(){
+    if (!filtered.length){
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1rem;">No products found</td></tr>';
+      paginationEl.innerHTML = '';
+      pageInfoEl.textContent = 'Page 1 of 1';
+      return;
+    }
+
+    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    const start = (currentPage - 1) * pageSize;
+    const slice = filtered.slice(start, start + pageSize);
+
+    tbody.innerHTML = slice.map(p => {
+      const isLow = Number(p.stock_quantity) <= Number(p.reorder_level);
+      return `<tr>
+        <td><strong>${esc(p.product_id)}</strong></td>
+        <td><div class="cell-title">${esc(p.name)}</div><div class="cell-sub">${esc(p.brand||'')}</div></td>
+        <td>${esc(p.category||'-')}</td>
+        <td>${esc(p.brand||'-')}</td>
+        <td class="numeric">₹${num(p.unit_price).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+        <td class="numeric">${num(p.stock_quantity)}</td>
+        <td><span class="badge ${isLow?'badge-warning':'badge-success'}"><span class="dot"></span>${isLow?'Low':'In Stock'}</span></td>
+      </tr>`;
+    }).join('');
+
+    renderPagination(pages);
+  }
+
+  function renderPagination(pages){
+    let html = `<button class="page-btn" ${currentPage<=1?'disabled':''} onclick="changePage(-1)"><i class="fas fa-chevron-left"></i></button>`;
+    for(let i=1; i<=Math.min(pages,5); i++){ 
+      html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="changePage(${i-currentPage})">${i}</button>`; 
+    }
+    html += `<button class="page-btn" ${currentPage>=pages?'disabled':''} onclick="changePage(1)"><i class="fas fa-chevron-right"></i></button>`;
+    paginationEl.innerHTML = html;
+    pageInfoEl.textContent = `Page ${currentPage} of ${pages}`;
+  }
+
+  window.changePage = function(delta){ 
+    if(typeof delta === 'number' && delta !== 0) {
+      currentPage += delta; 
+      renderTable(); 
+    }
+  };
+
+  function exportCSV(){
+    const rows = [['Product ID','Name','Category','Brand','Price','Stock']];
+    filtered.forEach(p => rows.push([p.product_id||'', p.name||'', p.category||'', p.brand||'', num(p.unit_price), num(p.stock_quantity)]));
+    const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? '"'+String(v).replace(/"/g,'""')+'"' : v).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'products.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function num(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
+  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+})();
+</script>
+{% endblock %}

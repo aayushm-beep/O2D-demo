@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}Google Sheet Sync - O2D-Demo{% endblock %}
+
+{% block content %}
+<div class="g-sheet-container card">
+  <div class="button-container">
+    <div class="navigation-buttons">
+      <span>Go to:</span>
+      <a href="/dashboard" class="nav-button btn btn-sm btn-outline">
+        <i class="fas fa-table"></i> Dashboard
+      </a>
+      <a href="/orders" class="nav-button btn btn-sm btn-outline">
+        <i class="fas fa-boxes"></i> Orders
+      </a>
+      <a href="/shipments" class="nav-button btn btn-sm btn-outline">
+        <i class="fa-solid fa-route"></i> Tracking
+      </a>
+      <a href="/analytics" class="nav-button btn btn-sm btn-outline">
+        <i class="fas fa-chart-bar"></i> Analytics
+      </a>
+      <a href="/warehouse" class="nav-button btn btn-sm btn-outline">
+        <i class="fa-solid fa-warehouse"></i> Warehouse
+      </a>
+      <a href="/products" class="nav-button btn btn-sm btn-outline">
+        <i class="fa-solid fa-box"></i> Products
+      </a>
+      <a href="/shipments" class="nav-button btn btn-sm btn-outline">
+        <i class="fa-solid fa-truck"></i> Shipments
+      </a>
+    </div>
+    <div class="action-buttons">
+      <button id="syncButton" class="btn btn-primary">
+        <i class="fas fa-sync-alt"></i> Sync Data from Google Sheets
+      </button>
+      <button id="bulkUpdateButton" class="btn btn-success">
+        <i class="fas fa-upload"></i> Bulk Update from Google Sheets
+      </button>
+    </div>
+  </div>
+
+  <div id="messageArea" class="message-area">
+    <p id="syncMessage"></p>
+    <div id="updateSection">
+      <p id="updateMessage"></p>
+      <div id="updateDetails" class="update-details">
+        <div id="updateStats" class="update-stats"></div>
+        <div id="updateErrors" class="update-errors"></div>
+      </div>
+    </div>
+    {% if not spreadsheet_id %}
+      <p class="error-message">
+        <i class="fas fa-exclamation-triangle"></i> GOOGLE_SPREADSHEET_ID is not set. Set it in your environment or config.
+      </p>
+    {% endif %}
+  </div>
+
+  <div class="tab-container card">
+    <div class="tab-buttons">
+      <button class="tab-button active" onclick="openTab(event,'syncTab')">
+        <i class="fas fa-download"></i> Sync Sheet
+      </button>
+      <button class="tab-button" onclick="openTab(event,'updateTab')">
+        <i class="fas fa-upload"></i> Bulk Update Sheet
+      </button>
+    </div>
+
+    <div id="syncTab" class="tab-content active">
+      <iframe src="https://docs.google.com/spreadsheets/d/{{ spreadsheet_id|default('') }}/edit?gid=0" allowfullscreen></iframe>
+    </div>
+    <div id="updateTab" class="tab-content">
+      <iframe src="https://docs.google.com/spreadsheets/d/{{ spreadsheet_id|default('') }}/edit?gid=0" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
+<style>
+  .g-sheet-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--topbar-height) - 2 * var(--space-xl));
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .button-container {
+    padding: var(--space-md);
+    display: flex;
+    gap: var(--space-md);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .navigation-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .navigation-buttons > span {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+  }
+
+  .nav-button {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .nav-button:hover {
+    text-decoration: none;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .message-area {
+    padding: var(--space-md);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .message-area p {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--font-sm);
+  }
+
+  .update-details {
+    margin-top: var(--space-md);
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    display: none;
+  }
+
+  .update-stats {
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .update-errors {
+    font-size: var(--font-xs);
+  }
+
+  .error-message {
+    color: var(--danger);
+    margin: var(--space-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-weight: 600;
+  }
+
+  .tab-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: var(--space-md);
+  }
+
+  .tab-buttons {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    padding: 0 var(--space-xs);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+
+  .tab-button {
+    padding: var(--space-sm) var(--space-lg);
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    cursor: pointer;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    margin: 0 var(--space-xs) -1px 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .tab-button.active {
+    background: var(--bg-primary);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--bg-primary);
+  }
+
+  .tab-button:hover:not(.active) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  .tab-content {
+    flex: 1;
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .tab-content iframe {
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  }
+
+  .success {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .error {
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .warning {
+    color: var(--warning);
+    font-weight: 600;
+  }
+
+  @media (max-width: 1024px) {
+    .button-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .navigation-buttons,
+    .action-buttons {
+      justify-content: center;
+    }
+    
+    .nav-button,
+    .btn {
+      font-size: var(--font-xs);
+      padding: var(--space-xs) var(--space-sm);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .g-sheet-container {
+      height: calc(100vh - var(--topbar-height) - 2 * var(--space-md));
+    }
+    
+    .tab-container {
+      margin: var(--space-sm);
+    }
+    
+    .tab-buttons {
+      overflow-x: auto;
+    }
+    
+    .tab-button {
+      white-space: nowrap;
+      padding: var(--space-sm) var(--space-md);
+    }
+  }
+</style>
+
+<script>
+  // Tabs
+  function openTab(ev, tabName){
+    document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+    document.getElementById(tabName).classList.add('active');
+    document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+    ev.currentTarget.classList.add('active');
+  }
+
+  // Modals removed for simplicity; we'll just run actions directly
+  const ENTITIES = ["orders","products","customers","warehouses","shipments"];
+
+  async function runSeq(urls, onEach){
+    for(const u of urls){
+      try{
+        const res = await fetch(u, {method:"POST"});
+        const data = await res.json();
+        await onEach({ok: res.ok && !data.error, data, url: u});
+      }catch(err){
+        await onEach({ok:false, data:{error:String(err)}, url:u});
+      }
+    }
+  }
+
+  document.getElementById('syncButton').addEventListener('click', ()=>{
+    const msg = document.getElementById('syncMessage');
+    const stats = document.getElementById('updateStats');
+    const errs = document.getElementById('updateErrors');
+    const details = document.getElementById('updateDetails');
+
+    msg.className='warning'; 
+    msg.innerHTML='<i class="fas fa-sync fa-spin"></i> Importing from Google Sheets…';
+    stats.innerHTML=''; 
+    errs.innerHTML=''; 
+    details.style.display='none';
+
+    const urls = ENTITIES.map(e=>`/admin/sync/import/${e}`);
+    let ins=0, upd=0, skip=0, errors=[];
+    runSeq(urls, ({ok,data,url})=>{
+      const ent = url.split('/').pop();
+      if(ok){ ins+=data.inserted||0; upd+=data.updated||0; skip+=data.skipped||0; }
+      else{ errors.push(`${ent}: ${data.error||'Unknown error'}`); }
+    }).then(()=>{
+      msg.className = errors.length ? 'warning' : 'success';
+      msg.innerHTML = errors.length ? 
+        '<i class="fas fa-exclamation-triangle"></i> Import completed with warnings.' : 
+        '<i class="fas fa-check-circle"></i> Import completed successfully.';
+      stats.innerHTML = `<strong>📊 Summary:</strong><br>✅ Inserted: ${ins} • 🔁 Updated: ${upd} • ⏭️ Skipped: ${skip}`;
+      errs.innerHTML = errors.length ? errors.map(e=>`• ${e}`).join('<br>') : '✅ No errors reported.';
+      details.style.display='block';
+    });
+  });
+
+  document.getElementById('bulkUpdateButton').addEventListener('click', ()=>{
+    const msg = document.getElementById('updateMessage');
+    const stats = document.getElementById('updateStats');
+    const errs = document.getElementById('updateErrors');
+    const details = document.getElementById('updateDetails');
+
+    msg.className='warning'; 
+    msg.innerHTML='<i class="fas fa-spinner fa-spin"></i> Exporting database data to Google Sheets…';
+    stats.innerHTML=''; 
+    errs.innerHTML=''; 
+    details.style.display='none';
+
+    const urls = ENTITIES.map(e=>`/admin/sync/export/${e}`);
+    let totalRows=0, errors=[];
+    runSeq(urls, ({ok,data,url})=>{
+      const ent = url.split('/').pop();
+      if(ok){ totalRows += data.rows||0; }
+      else{ errors.push(`${ent}: ${data.error||'Unknown error'}`); }
+    }).then(()=>{
+      msg.className = errors.length ? 'warning' : 'success';
+      msg.innerHTML = errors.length ? 
+        '<i class="fas fa-exclamation-triangle"></i> Export completed with warnings.' : 
+        '<i class="fas fa-check-circle"></i> Export completed successfully.';
+      stats.innerHTML = `<strong>📊 Summary:</strong><br>📄 Total rows written: ${totalRows}`;
+      errs.innerHTML = errors.length ? errors.map(e=>`• ${e}`).join('<br>') : '✅ No errors reported.';
+      details.style.display='block';
+    });
+  });
+</script>
+{% endblock %}
