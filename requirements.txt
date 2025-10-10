@@ -1,12 +1,9 @@
-<<<<<<< HEAD
 # =============================
 # DispatchPro Flask App Requirements
 # Optimized for Render (Python 3.13)
 # =============================
 
 # --- Core Flask Framework ---
-=======
->>>>>>> 30306b4 (Force Python 3.11.9 for Render deployment)
 Flask==3.0.3
 Werkzeug==3.0.2
 Flask-SQLAlchemy==3.1.1
@@ -24,8 +21,6 @@ Flask-Mail==0.9.1
 <<<<<<< HEAD
 
 # --- Environment Variables ---
-=======
->>>>>>> 30306b4 (Force Python 3.11.9 for Render deployment)
 python-dotenv==1.0.0
 python-dateutil==2.8.2
 pytz==2024.1
@@ -33,8 +28,6 @@ openpyxl==3.1.2
 xlrd==2.0.1
 numpy==1.26.4
 pandas==2.2.2
-<<<<<<< HEAD
-
 # --- Production WSGI Server ---
 gunicorn==21.2.0
 # waitress==3.0.2   # For local testing only
@@ -48,6 +41,4 @@ pytest-cov==4.1.0
 black==24.4.2
 flake8==7.0.0
 pylint==3.1.0
-=======
 gunicorn==21.0.0
->>>>>>> 30306b4 (Force Python 3.11.9 for Render deployment)
