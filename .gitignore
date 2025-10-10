@@ -1,0 +1,4 @@
+# Ignore sensitive files
+secrets/
+*.json
+.env
