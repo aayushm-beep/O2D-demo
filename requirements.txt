@@ -42,7 +42,8 @@ pytz==2024.1
 openpyxl==3.1.2
 xlrd==2.0.1
 pandas>=2.2.0
-
+numpy>=1.24.0
+Flask>=3.0.0
 # --- Production WSGI Server ---
 gunicorn==21.2.0
 # waitress==3.0.2   # Use locally on Windows only
