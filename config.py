@@ -12,14 +12,11 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
     
     # SQLAlchemy Configuration with Performance Optimizations
-
-      SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
     }
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for debugging
     
@@ -30,7 +27,7 @@ class Config:
     SQLALCHEMY_MAX_OVERFLOW = 40
     SQLALCHEMY_POOL_PRE_PING = True
 
-        # Session
+    # Session
     SESSION_TYPE = "filesystem"
     SESSION_PERMANENT = False
 
@@ -43,15 +40,12 @@ class Config:
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # Session Configuration
-    SESSION_TYPE = 'filesystem'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     SESSION_COOKIE_SECURE = True  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # Cache Configuration (Flask-Caching)
-    CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')
-    CACHE_DEFAULT_TIMEOUT = 300
     CACHE_KEY_PREFIX = 'dispatch_'
     
     # Redis Cache (if using Redis)
@@ -63,6 +57,7 @@ class Config:
     # JSON Configuration
     JSON_SORT_KEYS = False
     JSONIFY_PRETTYPRINT_REGULAR = False
+    
     # Compression
     COMPRESS_MIMETYPES = ['application/json','text/html','text/css','application/javascript']
     COMPRESS_LEVEL = 6
@@ -110,6 +105,19 @@ class Config:
     APP_VERSION = '2.0.0'
     TIMEZONE = 'Asia/Kolkata'
     CURRENCY = 'INR'
+    
+    # Google Sheets Configuration
+    GOOGLE_SA_JSON = os.getenv("GOOGLE_SA_JSON", "").strip()
+    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI").strip()
+    
+    # Tab names
+    SHEETS_TABS = {
+        "orders": "Orders",
+        "products": "Products",
+        "customers": "Customers",
+        "warehouses": "Warehouses",
+        "shipments": "Shipments",
+    }
     
     @staticmethod
     def init_app(app):
@@ -160,10 +168,6 @@ class ProductionConfig(Config):
             f"{os.getenv('DB_NAME', 'order_dispatch_db')}"
             "?charset=utf8mb4"
         )
-    
-    # Google Sheets Configuration
-    GOOGLE_SA_JSON = os.getenv("GOOGLE_SA_JSON", "").strip()
-    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI").strip()
 
 
 class TestingConfig(Config):
@@ -171,17 +175,3 @@ class TestingConfig(Config):
     TESTING = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
-
-    # --- Google Sheets Sync ---
-    # Path to your service account json (relative or absolute)
-    GOOGLE_SA_JSON = os.getenv("GOOGLE_SA_JSON", "").strip()
-    # Spreadsheet ID (the long key in the sheet URL)
-    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI").strip()
-    # Tab names
-    SHEETS_TABS = {
-        "orders": "Orders",
-        "products": "Products",
-        "customers": "Customers",
-        "warehouses": "Warehouses",
-        "shipments": "Shipments",
-    }
