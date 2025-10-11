@@ -1,5 +1,6 @@
-from flask_compress import Compress
+import os
 from flask import Flask, render_template, jsonify, request, Response, session, redirect, url_for
+from flask_compress import Compress
 from functools import wraps
 from datetime import datetime, timedelta, date
 from sqlalchemy import func, cast, Date, or_
@@ -7,44 +8,44 @@ import decimal
 import hashlib
 import secrets
 
-from config import Config
-from database import db, init_app, cache
-from models import Order, User, Warehouse, Product, Customer, Shipment
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-
+# Initialize Flask app
 app = Flask(__name__)
-db = SQLAlchemy(app)
-app = Flask(__name__)
-app.config.from_object(Config)
-app.secret_key = Config.SECRET_KEY
-
-
-# Enable HTTP compression for faster JSON/HTML delivery
-Compress(app)
 
 # Load configuration based on environment
-import os
-ENV = os.getenv('FLASK_ENV', 'development')
+ENV = os.getenv('FLASK_ENV', 'production')
 
 if ENV == 'production':
     from config import ProductionConfig
     app.config.from_object(ProductionConfig)
+    print("✅ Loaded ProductionConfig")
 else:
-    from config import Config
-    app.config.from_object(Config)
+    from config import DevelopmentConfig
+    app.config.from_object(DevelopmentConfig)
+    print("✅ Loaded DevelopmentConfig")
 
-# Initialize config
+# Initialize app-specific configurations
+from config import Config
 Config.init_app(app)
 
+# Enable HTTP compression
+Compress(app)
+
+# Initialize database and cache
+from database import db, init_app, cache
 init_app(app)
 
+# Import models
+from models import Order, User, Warehouse, Product, Customer, Shipment
+
+# Register API routes if available
 try:
     from api_routes import api
     app.register_blueprint(api)
-except:
-    pass
+    print("✅ API routes registered")
+except ImportError:
+    print("⚠️ API routes not found, skipping")
 
+# Helper functions
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -441,7 +442,7 @@ def init_data():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 # Optional Google Sheets integration
 try:
     from sheets_sync import export_table, import_table
@@ -450,7 +451,6 @@ try:
 except ImportError as e:
     print(f"⚠ Google Sheets not available: {e}")
     SHEETS_AVAILABLE = False
-    # Create dummy functions
     def export_table(*args, **kwargs):
         return 0, 0
     def import_table(*args, **kwargs):
@@ -487,36 +487,30 @@ def sync_import(entity):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-from config import Config
 @app.route("/sheets")
 @login_required
 def sheets_page():
-    # Pass empty string if unset so the template can show a warning
-    sid = getattr(Config, "GOOGLE_SPREADSHEET_ID", "") or "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI"
+    sid = app.config.get("GOOGLE_SPREADSHEET_ID", "") or "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI"
     return render_template("sheets.html", spreadsheet_id=sid)
+
 @app.get("/admin/sync/check")
 @login_required
 def sync_check():
-    import os
     ok = True
     issues = []
     
-    # Check if sheets integration is available
     if not SHEETS_AVAILABLE:
         ok = False
         issues.append("Google Sheets dependencies not installed (gspread missing)")
         return jsonify({"ok": ok, "issues": issues})
     
-    # Check configuration
     sa_json = app.config.get('GOOGLE_SA_JSON', '')
     if not sa_json:
         ok = False
         issues.append("GOOGLE_SA_JSON not set in environment")
     elif sa_json and os.path.isfile(sa_json):
-        # File path provided
         pass
     elif sa_json and sa_json.startswith('{'):
-        # JSON content provided directly (for Render)
         pass
     else:
         ok = False
@@ -534,8 +528,6 @@ def sync_check():
 def forecast_page():
     return render_template('forecast.html')
 
-
-
 if __name__ == "__main__":
     with app.app_context():
         try:
@@ -543,3 +535,5 @@ if __name__ == "__main__":
             print("✅ Database tables created or already exist.")
         except Exception as e:
             print("⚠️ Error during DB setup:", e)
+    
+    app.run(debug=app.config.get('DEBUG', False))
