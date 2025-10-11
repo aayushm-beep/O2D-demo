@@ -4,9 +4,6 @@ from flask_caching import Cache
 import decimal
 
 db = SQLAlchemy()
-    def init_app(app):
-    db.init_app(app)
-        
 migrate = Migrate()
 cache = Cache()
 
