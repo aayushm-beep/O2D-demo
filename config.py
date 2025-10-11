@@ -13,7 +13,11 @@ class Config:
     
     # SQLAlchemy Configuration with Performance Optimizations
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+      SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -25,22 +29,17 @@ class Config:
     SQLALCHEMY_POOL_RECYCLE = 3600
     SQLALCHEMY_MAX_OVERFLOW = 40
     SQLALCHEMY_POOL_PRE_PING = True
-    
-    # Engine Options
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_size': 20,
-        'max_overflow': 40,
-        'pool_recycle': 3600,
-        'connect_args': {
-            'connect_timeout': 10,
-            'read_timeout': 30,
-            'write_timeout': 30
-        }
-    }
+
+        # Session
+    SESSION_TYPE = "filesystem"
+    SESSION_PERMANENT = False
+
+    # Caching
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = 300
     
     # Flask Configuration
-    SECRET_KEY = os.getenv('SECRET_KEY', '')
+    SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # Session Configuration
