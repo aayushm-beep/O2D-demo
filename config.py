@@ -12,10 +12,9 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
     
     # SQLAlchemy Configuration with Performance Optimizations
-   import os
 
-SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
-SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for debugging
@@ -41,7 +40,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
     }
     
     # Flask Configuration
-    SECRET_KEY = os.getenv('SECRET_KEY', '9518de55eb6f9f7b022f73ac9074b3e30c582231062665bda1c052141a5fa76a')
+    SECRET_KEY = os.getenv('SECRET_KEY', '')
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # Session Configuration
