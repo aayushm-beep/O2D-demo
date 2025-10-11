@@ -3,18 +3,23 @@ services:
     name: o2d-demo
     env: python
     region: oregon
+    plan: free
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 2 --bind 0.0.0.0:10000
+    startCommand: gunicorn app:app --workers 2 --threads 2 --bind 0.0.0.0:10000 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: DATABASE_URL
-        fromDatabase:
-          name: your-database-name
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
       - key: FLASK_ENV
         value: production
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true
+    # Link to PostgreSQL database
+        databases:
+          - name: O2D-Demo
+            databaseName: o2d_dborder_dispatch_db
+            user: order_dispatch_db_user
+            region: oregon
