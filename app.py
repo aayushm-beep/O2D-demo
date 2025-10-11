@@ -7,6 +7,7 @@ from sqlalchemy import func, cast, Date, or_
 import decimal
 import hashlib
 import secrets
+from database import db, init_app
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -33,7 +34,13 @@ Compress(app)
 # Initialize database and cache
 from database import db, init_app, cache
 init_app(app)
-
+with app.app_context():
+    try:
+        db.create_all()
+        print("✓ Database tables ensured.")
+    except Exception as e:
+        print("⚠️ Error creating database tables:", e)
+        
 # Import models
 from models import Order, User, Warehouse, Product, Customer, Shipment
 
