@@ -5,10 +5,10 @@ class Config:
     """Application configuration with performance optimizations"""
     
     # Database Configuration
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = int(os.getenv('DB_PORT', 3306))
-    DB_USER = os.getenv('DB_USER', 'root')
-    DB_PASS = os.getenv('DB_PASS', 'root')
+    DB_HOST = os.getenv('DB_HOST', 'dpg-d3kussl6ubrc738thlq0-a')
+    DB_PORT = int(os.getenv('DB_PORT', 5432))
+    DB_USER = os.getenv('DB_USER', 'order_dispatch_db_user')
+    DB_PASS = os.getenv('DB_PASS', 'tiuuNCy1n0JYEEl02EozDFnEiIKN7eJM')
     DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
     
     # SQLAlchemy Configuration with Performance Optimizations
@@ -40,7 +40,7 @@ class Config:
     }
     
     # Flask Configuration
-    SECRET_KEY = os.getenv('SECRET_KEY', 'b49d853b32a1e6e7578f73fb19f876bf972bd5bc476149d5ba35e9718d752651')
+    SECRET_KEY = os.getenv('SECRET_KEY', '9518de55eb6f9f7b022f73ac9074b3e30c582231062665bda1c052141a5fa76a')
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # Session Configuration
