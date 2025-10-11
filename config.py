@@ -137,27 +137,34 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     SQLALCHEMY_ECHO = False
-    CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')  # Use Redis if available
+    CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')
     SESSION_COOKIE_SECURE = True
     
     # Use environment variables for sensitive data
     SECRET_KEY = os.getenv('SECRET_KEY', Config.SECRET_KEY)
     
-    # Database URL - Render provides this
+    # Database URL - Render provides this as DATABASE_URL
     DATABASE_URL = os.getenv('DATABASE_URL', '')
     
-    # Fix for Render's postgres:// vs postgresql:// issue
-    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL or (
-        f"mysql+pymysql://{Config.DB_USER}:{Config.DB_PASS}@"
-        f"{Config.DB_HOST}:{Config.DB_PORT}/{Config.DB_NAME}?charset=utf8mb4"
-    )
+    # Fix Render's postgres:// to postgresql://
+    if DATABASE_URL:
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        # Fallback to MySQL with individual env vars
+        SQLALCHEMY_DATABASE_URI = (
+            f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:"
+            f"{os.getenv('DB_PASS', 'root')}@"
+            f"{os.getenv('DB_HOST', 'localhost')}:"
+            f"{os.getenv('DB_PORT', '3306')}/"
+            f"{os.getenv('DB_NAME', 'order_dispatch_db')}"
+            "?charset=utf8mb4"
+        )
     
     # Google Sheets Configuration
     GOOGLE_SA_JSON = os.getenv("GOOGLE_SA_JSON", "").strip()
-    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "").strip()
+    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "1Jf8YNR1YA56uIEbxRR-v1ux5wOMu3zefXBBGhFvWpoI").strip()
 
 
 class TestingConfig(Config):
