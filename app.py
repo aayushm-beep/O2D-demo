@@ -18,18 +18,19 @@ app.secret_key = Config.SECRET_KEY
 # Enable HTTP compression for faster JSON/HTML delivery
 Compress(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"mysql+pymysql://{app.config['DB_USER']}:{app.config['DB_PASS']}"
-    f"@{app.config['DB_HOST']}:{app.config['DB_PORT']}/{app.config['DB_NAME']}"
-)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_POOL_SIZE'] = 20
-app.config['SQLALCHEMY_POOL_RECYCLE'] = 3600
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_size': 20,
-    'max_overflow': 40
-}
+# Load configuration based on environment
+import os
+ENV = os.getenv('FLASK_ENV', 'development')
+
+if ENV == 'production':
+    from config import ProductionConfig
+    app.config.from_object(ProductionConfig)
+else:
+    from config import Config
+    app.config.from_object(Config)
+
+# Initialize config
+Config.init_app(app)
 
 init_app(app)
 
@@ -436,7 +437,26 @@ def init_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-from sheets_sync import export_table, import_table
+# Optional Google Sheets integration
+try:
+    from sheets_sync import export_table, import_table
+    SHEETS_AVAILABLE = True
+    print("✓ Google Sheets integration loaded successfully")
+except ImportError as e:
+    print(f"⚠ Google Sheets not available: {e}")
+    SHEETS_AVAILABLE = False
+    # Create dummy functions
+    def export_table(*args, **kwargs):
+        return 0, 0
+    def import_table(*args, **kwargs):
+        return {"error": "Sheets integration not configured"}
+except Exception as e:
+    print(f"⚠ Google Sheets error: {e}")
+    SHEETS_AVAILABLE = False
+    def export_table(*args, **kwargs):
+        return 0, 0
+    def import_table(*args, **kwargs):
+        return {"error": str(e)}
 
 @app.post("/admin/sync/export/<entity>")
 @login_required
@@ -472,12 +492,36 @@ def sheets_page():
 @app.get("/admin/sync/check")
 @login_required
 def sync_check():
-    from config import Config
     import os
-    ok = True; issues=[]
-    if not Config.GOOGLE_SA_JSON: ok=False; issues.append("GOOGLE_SA_JSON not set")
-    elif not os.path.isfile(Config.GOOGLE_SA_JSON): ok=False; issues.append(f"JSON not found at {Config.GOOGLE_SA_JSON}")
-    if not Config.GOOGLE_SPREADSHEET_ID: ok=False; issues.append("GOOGLE_SPREADSHEET_ID not set")
+    ok = True
+    issues = []
+    
+    # Check if sheets integration is available
+    if not SHEETS_AVAILABLE:
+        ok = False
+        issues.append("Google Sheets dependencies not installed (gspread missing)")
+        return jsonify({"ok": ok, "issues": issues})
+    
+    # Check configuration
+    sa_json = app.config.get('GOOGLE_SA_JSON', '')
+    if not sa_json:
+        ok = False
+        issues.append("GOOGLE_SA_JSON not set in environment")
+    elif sa_json and os.path.isfile(sa_json):
+        # File path provided
+        pass
+    elif sa_json and sa_json.startswith('{'):
+        # JSON content provided directly (for Render)
+        pass
+    else:
+        ok = False
+        issues.append(f"GOOGLE_SA_JSON is neither a valid file nor JSON content")
+    
+    spreadsheet_id = app.config.get('GOOGLE_SPREADSHEET_ID', '')
+    if not spreadsheet_id:
+        ok = False
+        issues.append("GOOGLE_SPREADSHEET_ID not set")
+    
     return jsonify({"ok": ok, "issues": issues})
 
 @app.route('/forecast')
