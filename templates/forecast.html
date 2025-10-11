@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+{% block title %}Forecasts - O2D-Demo{% endblock %}
+
+{% block content %}
+<div class="forecasts-page">
+
+  <!-- Header -->
+  <div class="forecasts-header card">
+    <div class="header-content">
+      <div class="header-title">
+        <i class="fas fa-crystal-ball"></i>
+        <div>
+          <h1>Forecasts</h1>
+          <p>AI-powered predictions with seasonality & holiday insights</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="control-group">
+          <label><i class="fas fa-calendar"></i> Start Date</label>
+          <input type="date" id="startDate" class="form-control">
+        </div>
+        <div class="control-group">
+          <label><i class="fas fa-calendar"></i> End Date</label>
+          <input type="date" id="endDate" class="form-control">
+        </div>
+        <div class="control-group">
+          <label><i class="fas fa-clock"></i> Quick Select</label>
+          <select id="horizonSelect" class="form-control">
+            <option value="custom">Custom Range</option>
+            <option value="7">Next 7 days</option>
+            <option value="14" selected>Next 14 days</option>
+            <option value="30">Next 30 days</option>
+            <option value="60">Next 60 days</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="refreshForecasts" aria-label="Refresh forecasts">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="card kpi-card">
+      <i class="fas fa-shopping-cart"></i>
+      <div class="kpi-data">
+        <span class="label">Projected Orders</span>
+        <span class="value" id="kpiOrders">0</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <i class="fas fa-indian-rupee-sign"></i>
+      <div class="kpi-data">
+        <span class="label">Projected Revenue</span>
+        <span class="value" id="kpiRevenue">₹0</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <i class="fas fa-truck-fast"></i>
+      <div class="kpi-data">
+        <span class="label">Projected Deliveries</span>
+        <span class="value" id="kpiDeliveries">0</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <i class="fas fa-triangle-exclamation"></i>
+      <div class="kpi-data">
+        <span class="label">Inventory Risks</span>
+        <span class="value" id="kpiRisks">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forecast Charts -->
+  <div class="charts-grid">
+    <div class="chart-card chart-wide">
+      <div class="chart-header">
+        <h3><i class="fas fa-chart-line"></i> Orders Forecast (Seasonality + Holidays)</h3>
+      </div>
+      <div class="chart-container">
+        <canvas id="ordersForecastChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3><i class="fas fa-chart-bar"></i> Revenue Forecast</h3>
+      </div>
+      <div class="chart-container">
+        <canvas id="revenueForecastChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison Section -->
+  <div class="comparison-section card">
+    <h2 class="section-title"><i class="fas fa-code-compare"></i> Actual vs Predicted Comparison</h2>
+    <div class="comparison-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-line"></i> Orders</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="ordersCompareChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-line"></i> Revenue</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenueCompareChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-line"></i> Deliveries</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="deliveriesCompareChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="tables-grid">
+    <div class="table-card card">
+      <div class="table-header">
+        <h3><i class="fas fa-box-open"></i> Inventory Watchlist</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Stock</th>
+              <th>Daily Rate</th>
+              <th>Days Left</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryWatchBody">
+            <tr>
+              <td colspan="5" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-card card">
+      <div class="table-header">
+        <h3><i class="fas fa-route"></i> Shipment Forecast</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Deliveries</th>
+              <th>On-Time %</th>
+            </tr>
+          </thead>
+          <tbody id="shipmentForecastBody">
+            <tr>
+              <td colspan="3" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seasonality & Holidays -->
+  <div class="tables-grid" style="margin-top: var(--space-lg);">
+    <div class="table-card card">
+      <div class="table-header">
+        <h3><i class="fas fa-sun"></i> Weekly Seasonality Pattern</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Multiplier</th>
+              <th>Trend</th>
+            </tr>
+          </thead>
+          <tbody id="seasonalityBody">
+            <tr>
+              <td colspan="3" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-card card">
+      <div class="table-header">
+        <h3><i class="fas fa-calendar-day"></i> Holiday Impacts</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Multiplier</th>
+              <th>Effect</th>
+            </tr>
+          </thead>
+          <tbody id="holidayBody">
+            <tr>
+              <td colspan="3" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Style -->
+<style>
+  .forecasts-page { 
+    padding: var(--space-xl); 
+    background: var(--bg-secondary); 
+    min-height: 100vh; 
+  }
+  
+  .forecasts-header {
+    margin-bottom: var(--space-xl);
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  
+  .header-title h1 {
+    margin: 0;
+    font-size: var(--font-2xl);
+    color: var(--text-primary);
+  }
+  
+  .header-title p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+  }
+  
+  .header-controls {
+    display: flex;
+    gap: var(--space-md);
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  
+  .control-group label {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  .form-control {
+    min-width: 140px;
+  }
+  
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+  }
+  
+  .kpi-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+  }
+  
+  .kpi-card i {
+    font-size: var(--font-xl);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+  }
+  
+  .kpi-data {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .kpi-data .label {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xs);
+  }
+  
+  .kpi-data .value {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  
+  .kpi-card:nth-child(1) i { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+  .kpi-card:nth-child(2) i { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+  .kpi-card:nth-child(3) i { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+  .kpi-card:nth-child(4) i { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+  
+  .charts-grid, .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+  }
+  
+  .chart-card {
+    padding: var(--space-md);
+  }
+  
+  .chart-wide {
+    grid-column: span 2;
+  }
+  
+  .chart-header h3 {
+    font-size: var(--font-md);
+    margin: 0 0 var(--space-md);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+  
+  .comparison-section {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+  }
+  
+  .comparison-section .section-title {
+    margin: 0 0 var(--space-lg);
+    font-size: var(--font-xl);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-lg);
+  }
+  
+  .table-card {
+    overflow: hidden;
+  }
+  
+  .table-header {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .table-header h3 {
+    margin: 0;
+    font-size: var(--font-md);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .data-table th {
+    background: var(--bg-tertiary);
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .data-table td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--font-sm);
+  }
+  
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .loading, .empty-state {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-tertiary);
+  }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  .status-badge {
+    padding: 0.188rem 0.438rem;
+    border-radius: 12px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .status-processing {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  
+  .status-pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @media (max-width: 768px) {
+    .forecasts-page {
+      padding: var(--space-md);
+    }
+    
+    .header-content {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .header-controls {
+      justify-content: center;
+    }
+    
+    .chart-wide {
+      grid-column: span 1;
+    }
+    
+    .kpi-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .charts-grid, .tables-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+<script src="/static/js/forecast.js?v=11"></script>
+
+<script>
+  // Fill seasonality and holidays dynamically
+  document.addEventListener("forecastDataLoaded", (e) => {
+    const data = e.detail;
+    const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    const sbody = document.getElementById("seasonalityBody");
+    sbody.innerHTML = data.seasonalityPattern.map((v,i)=>`
+      <tr>
+        <td>${week[i]}</td>
+        <td>${v.toFixed(2)}</td>
+        <td>${v>1?"↑ High Demand":v<1?"↓ Low Demand":"Normal"}</td>
+      </tr>`).join("");
+
+    const hbody = document.getElementById("holidayBody");
+    const entries = Object.entries(data.holidaysUsed || {});
+    hbody.innerHTML = entries.length ? entries.map(([d,v])=>`
+      <tr>
+        <td>${d}</td>
+        <td>${v.toFixed(2)}</td>
+        <td>${v>1?"↑ Boost":"↓ Drop"}</td>
+      </tr>`).join("")
+      : '<tr><td colspan="3">No holidays in range</td></tr>';
+  });
+</script>
+{% endblock %}

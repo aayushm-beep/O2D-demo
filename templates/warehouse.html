@@ -1,0 +1,1002 @@
+{% extends "base.html" %}
+
+{% block title %}Warehouse Management - O2D-Demo{% endblock %}
+
+{% block content %}
+<div class="warehouse-container" id="warehouseRoot">
+  <!-- Sticky Page Header -->
+  <header class="page-header card" role="banner">
+    <div class="header-content">
+      <h1 class="page-title"><i class="fas fa-warehouse" aria-hidden="true"></i> Warehouse Management</h1>
+      <p class="subtitle">Monitor and manage warehouse operations and inventory</p>
+    </div>
+    <div class="header-actions" role="toolbar" aria-label="Page actions">
+      <button class="btn btn-outline" id="refreshBtn">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i><span>Refresh</span>
+      </button>
+      <button class="btn btn-primary" id="addWarehouseBtn">
+        <i class="fas fa-plus" aria-hidden="true"></i><span>Add Warehouse</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Controls: Search, Filters, Sort -->
+  <section class="filters card" aria-label="Warehouse filters">
+    <div class="filters-left">
+      <label class="sr-only" for="searchInput">Search warehouses</label>
+      <div class="input-with-icon">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input id="searchInput" type="search" placeholder="Search by name, city, or manager…" autocomplete="off" class="form-control" />
+      </div>
+
+      <div class="select-group">
+        <label class="sr-only" for="statusFilter">Status</label>
+        <select id="statusFilter" class="form-control">
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label class="sr-only" for="sortBy">Sort by</label>
+        <select id="sortBy" class="form-control">
+          <option value="name-asc">Name (A→Z)</option>
+          <option value="name-desc">Name (Z→A)</option>
+          <option value="city-asc">City (A→Z)</option>
+          <option value="utilization-desc">Utilization (High→Low)</option>
+          <option value="utilization-asc">Utilization (Low→High)</option>
+          <option value="capacity-desc">Capacity (High→Low)</option>
+          <option value="capacity-asc">Capacity (Low→High)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filters-right">
+      <button class="btn btn-ghost" id="exportCsvBtn"><i class="fas fa-file-export" aria-hidden="true"></i><span>Export CSV</span></button>
+    </div>
+  </section>
+
+  <!-- Warehouse Stats -->
+  <section class="stats-grid" aria-label="Warehouse statistics">
+    <article class="stat-card card" aria-live="polite">
+      <div class="stat-icon bg-blue"><i class="fas fa-warehouse" aria-hidden="true"></i></div>
+      <div class="stat-info">
+        <h4>Total Warehouses</h4>
+        <p class="stat-value" id="totalWarehouses">0</p>
+      </div>
+    </article>
+    <article class="stat-card card" aria-live="polite">
+      <div class="stat-icon bg-green"><i class="fas fa-boxes" aria-hidden="true"></i></div>
+      <div class="stat-info">
+        <h4>Total Capacity</h4>
+        <p class="stat-value" id="totalCapacity">0</p>
+      </div>
+    </article>
+    <article class="stat-card card" aria-live="polite">
+      <div class="stat-icon bg-orange"><i class="fas fa-box-open" aria-hidden="true"></i></div>
+      <div class="stat-info">
+        <h4>Current Stock</h4>
+        <p class="stat-value" id="currentStock">0</p>
+      </div>
+    </article>
+    <article class="stat-card card" aria-live="polite">
+      <div class="stat-icon bg-purple"><i class="fas fa-chart-pie" aria-hidden="true"></i></div>
+      <div class="stat-info">
+        <h4>Utilization</h4>
+        <p class="stat-value" id="utilization">0%</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- Results meta -->
+  <div class="results-meta" id="resultsMeta" aria-live="polite">Showing 0 results</div>
+
+  <!-- Warehouse Cards Grid -->
+  <section class="warehouse-grid" id="warehouseGrid" aria-label="Warehouse list">
+    <div class="loading-placeholder" id="loadingState" role="status" aria-live="polite">
+      <div class="skeleton-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <p>Loading warehouses…</p>
+    </div>
+  </section>
+
+  <!-- Pagination (client-side) -->
+  <nav class="pagination" aria-label="Pagination" id="pagination" hidden>
+    <button class="btn btn-ghost" id="prevPage" disabled>Previous</button>
+    <span id="pageInfo" class="page-info">Page 1</span>
+    <button class="btn btn-ghost" id="nextPage" disabled>Next</button>
+  </nav>
+</div>
+
+<!-- Add/Edit Warehouse Modal -->
+<div id="warehouseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+  <div class="modal-overlay" data-close="true"></div>
+  <div class="modal-content" role="document">
+    <header class="modal-header">
+      <h2 id="modalTitle"><i class="fas fa-warehouse" aria-hidden="true"></i> <span id="modalTitleText">Add Warehouse</span></h2>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close dialog">&times;</button>
+    </header>
+    <div class="modal-body">
+      <form id="warehouseForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Warehouse Name *</label>
+            <input id="name" name="name" type="text" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label for="manager_name">Manager Name *</label>
+            <input id="manager_name" name="manager_name" type="text" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label for="city">City *</label>
+            <input id="city" name="city" type="text" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label for="state">State *</label>
+            <input id="state" name="state" type="text" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label for="capacity">Capacity (units)</label>
+            <input id="capacity" name="capacity" type="number" class="form-control" min="0" step="1" required />
+          </div>
+          <div class="form-group">
+            <label for="current_stock">Current Stock</label>
+            <input id="current_stock" name="current_stock" type="number" class="form-control" min="0" step="1" value="0" />
+          </div>
+          <div class="form-group full-width">
+            <label for="location">Location Address</label>
+            <textarea id="location" name="location" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <footer class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close="true">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Warehouse</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.warehouse-container { 
+  padding: var(--space-xl); 
+  background: var(--bg-secondary); 
+  color: var(--text-primary); 
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-xl);
+  position: sticky; 
+  top: 0; 
+  z-index: 5;
+}
+
+.page-title { 
+  margin: 0; 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+  font-size: var(--font-2xl);
+}
+
+.subtitle { 
+  margin: var(--space-xs) 0 0; 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+.header-actions { 
+  display: flex; 
+  gap: var(--space-md); 
+}
+
+/* Controls */
+.filters { 
+  margin-bottom: var(--space-xl); 
+  padding: var(--space-lg);
+}
+
+.filters-left { 
+  display: flex; 
+  gap: var(--space-md); 
+  align-items: flex-end; 
+  flex-wrap: wrap; 
+}
+
+.input-with-icon { 
+  position: relative; 
+}
+
+.input-with-icon i { 
+  position: absolute; 
+  left: var(--space-sm); 
+  top: 50%; 
+  transform: translateY(-50%); 
+  color: var(--text-tertiary); 
+}
+
+.input-with-icon input { 
+  padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-md) + var(--space-sm)); 
+  min-width: 260px;
+}
+
+.select-group select { 
+  padding: var(--space-sm) var(--space-md); 
+  min-width: 160px;
+}
+
+.filters-right { 
+  display: flex; 
+  gap: var(--space-md); 
+  align-items: flex-end; 
+}
+
+/* Stats */
+.stats-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+  gap: var(--space-md); 
+  margin-bottom: var(--space-xl);
+}
+
+.stat-card { 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+  padding: var(--space-lg);
+}
+
+.stat-icon { 
+  width: 48px; 
+  height: 48px; 
+  border-radius: var(--radius-md); 
+  display: grid; 
+  place-items: center; 
+  color: white; 
+  font-size: var(--font-xl);
+}
+
+.bg-blue { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+.bg-green { background: linear-gradient(135deg, var(--success), #16a34a); }
+.bg-orange { background: linear-gradient(135deg, var(--warning), #d97706); }
+.bg-purple { background: linear-gradient(135deg, var(--info), #7c3aed); }
+
+.stat-info h4 { 
+  margin: 0 0 var(--space-xs); 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm); 
+  font-weight: 600; 
+}
+
+.stat-value { 
+  margin: 0; 
+  font-size: var(--font-xl); 
+  font-weight: 700; 
+  color: var(--text-primary);
+}
+
+.results-meta { 
+  margin: 0 0 var(--space-md); 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+/* Grid */
+.warehouse-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+  gap: var(--space-md); 
+  margin-bottom: var(--space-xl);
+}
+
+.warehouse-card { 
+  background: var(--bg-primary); 
+  border-radius: var(--radius-md); 
+  padding: var(--space-lg); 
+  box-shadow: var(--shadow-md); 
+  transition: transform var(--transition-base), box-shadow var(--transition-base); 
+  position: relative; 
+  overflow: hidden; 
+  border: 1px solid var(--border);
+}
+
+.warehouse-card::before { 
+  content: ""; 
+  position: absolute; 
+  inset: 0 0 auto 0; 
+  height: 3px; 
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark)); 
+}
+
+.warehouse-card:hover { 
+  transform: translateY(-3px); 
+  box-shadow: var(--shadow-lg); 
+}
+
+.warehouse-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start; 
+  margin-bottom: var(--space-md); 
+}
+
+.warehouse-title { 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+}
+
+.warehouse-icon { 
+  width: 46px; 
+  height: 46px; 
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+  border-radius: var(--radius-sm); 
+  display: grid; 
+  place-items: center; 
+  color: white; 
+  font-size: var(--font-lg); 
+}
+
+.warehouse-info h3 { 
+  margin: 0 0 var(--space-xs); 
+  font-size: var(--font-md);
+}
+
+.warehouse-info p { 
+  margin: 0; 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm); 
+}
+
+.warehouse-status { 
+  padding: 0.25rem 0.5rem; 
+  border-radius: 999px; 
+  font-size: 0.625rem; 
+  font-weight: 700; 
+  align-self: flex-start; 
+  white-space: nowrap; 
+}
+
+.status-active { 
+  background: var(--success); 
+  color: white; 
+}
+
+.status-inactive { 
+  background: var(--danger); 
+  color: white; 
+}
+
+.warehouse-details { 
+  margin: var(--space-md) 0; 
+  display: grid; 
+  gap: var(--space-xs); 
+}
+
+.detail-row { 
+  display: flex; 
+  justify-content: space-between; 
+  padding: var(--space-xs) 0; 
+  border-bottom: 1px dashed var(--border); 
+}
+
+.detail-label { 
+  color: var(--text-secondary); 
+  font-size: var(--font-xs); 
+}
+
+.detail-value { 
+  color: var(--text-primary); 
+  font-weight: 600; 
+  font-size: var(--font-sm); 
+}
+
+.capacity-bar { 
+  margin-top: var(--space-md); 
+}
+
+.capacity-bar-label { 
+  display: flex; 
+  justify-content: space-between; 
+  margin-bottom: var(--space-xs); 
+  font-size: var(--font-xs); 
+  color: var(--text-secondary); 
+}
+
+.capacity-progress { 
+  height: 8px; 
+  background: var(--border); 
+  border-radius: 999px; 
+  overflow: hidden; 
+}
+
+.capacity-fill { 
+  height: 100%; 
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark)); 
+  transition: width 0.3s ease; 
+}
+
+.capacity-fill.warning { 
+  background: linear-gradient(90deg, var(--warning), #d97706); 
+}
+
+.capacity-fill.danger { 
+  background: linear-gradient(90deg, var(--danger), #dc2626); 
+}
+
+.warehouse-actions { 
+  display: flex; 
+  gap: var(--space-sm); 
+  margin-top: var(--space-md); 
+}
+
+/* Skeletons */
+.skeleton-grid { 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  gap: var(--space-md); 
+  width: 100%; 
+}
+
+.skeleton-card { 
+  background: var(--bg-primary); 
+  height: 180px; 
+  border-radius: var(--radius-md); 
+  position: relative; 
+  overflow: hidden; 
+  border: 1px solid var(--border); 
+}
+
+.skeleton-card::after { 
+  content: ""; 
+  position: absolute; 
+  inset: 0; 
+  transform: translateX(-100%); 
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.06), transparent); 
+  animation: shimmer 1.2s infinite; 
+}
+
+@keyframes shimmer { 
+  100% { transform: translateX(100%); } 
+}
+
+.loading-placeholder { 
+  grid-column: 1 / -1; 
+  text-align: center; 
+  padding: var(--space-xl); 
+  color: var(--text-secondary); 
+}
+
+/* Modal */
+.modal[aria-hidden="true"] { 
+  display: none; 
+}
+
+.modal { 
+  position: fixed; 
+  inset: 0; 
+  z-index: 50; 
+  display: grid; 
+  place-items: center; 
+}
+
+.modal-overlay { 
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,.3); 
+}
+
+.modal-content { 
+  position: relative; 
+  background: var(--bg-primary); 
+  color: var(--text-primary); 
+  border-radius: var(--radius-lg); 
+  width: min(720px, 92vw); 
+  border: 1px solid var(--border); 
+  box-shadow: var(--shadow-xl); 
+}
+
+.modal-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: var(--space-md) var(--space-lg); 
+  border-bottom: 1px solid var(--border); 
+}
+
+.modal-close { 
+  font-size: 1.5rem; 
+  line-height: 1; 
+  background: transparent; 
+  border: none; 
+  cursor: pointer; 
+  color: var(--text-secondary); 
+  padding: var(--space-xs) var(--space-sm); 
+}
+
+.modal-body { 
+  padding: var(--space-md) var(--space-lg) var(--space-lg); 
+}
+
+.form-grid { 
+  display: grid; 
+  grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  gap: var(--space-md); 
+}
+
+.form-group { 
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--space-xs); 
+}
+
+.form-group.full-width { 
+  grid-column: 1 / -1; 
+}
+
+.form-group label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.form-actions { 
+  margin-top: var(--space-lg); 
+  display: flex; 
+  justify-content: flex-end; 
+  gap: var(--space-md); 
+}
+
+/* Pagination */
+.pagination { 
+  margin-top: var(--space-lg); 
+  display: flex; 
+  align-items: center; 
+  gap: var(--space-md); 
+  justify-content: center; 
+}
+
+.page-info { 
+  color: var(--text-secondary); 
+  font-size: var(--font-sm);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .stats-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+  }
+}
+
+@media (max-width: 768px) {
+  .warehouse-container {
+    padding: var(--space-md);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+  
+  .header-actions {
+    justify-content: center;
+  }
+  
+  .filters {
+    padding: var(--space-md);
+  }
+  
+  .filters-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  
+  .input-with-icon input,
+  .select-group select {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .filters-right {
+    justify-content: center;
+    margin-top: var(--space-md);
+  }
+  
+  .warehouse-grid { 
+    grid-template-columns: 1fr; 
+  }
+  
+  .skeleton-grid { 
+    grid-template-columns: 1fr; 
+  }
+  
+  .form-grid { 
+    grid-template-columns: 1fr; 
+  }
+  
+  .pagination {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .page-info {
+    order: -1;
+  }
+}
+</style>
+
+<script>
+/**
+ * Warehouse Management UI – enhanced UX, a11y & utilities.
+ * Assumes Font Awesome is available in base.html. No external libs.
+ */
+(() => {
+  const grid = document.getElementById('warehouseGrid');
+  const resultsMeta = document.getElementById('resultsMeta');
+  const loadingState = document.getElementById('loadingState');
+  const pagination = document.getElementById('pagination');
+  const pageInfo = document.getElementById('pageInfo');
+  const prevPageBtn = document.getElementById('prevPage');
+  const nextPageBtn = document.getElementById('nextPage');
+
+  const searchInput = document.getElementById('searchInput');
+  const statusFilter = document.getElementById('statusFilter');
+  const sortBy = document.getElementById('sortBy');
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  const addWarehouseBtn = document.getElementById('addWarehouseBtn');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+
+  const modal = document.getElementById('warehouseModal');
+  const modalTitleText = document.getElementById('modalTitleText');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  const warehouseForm = document.getElementById('warehouseForm');
+
+  let allWarehouses = [];
+  let filtered = [];
+
+  // client‑side pagination
+  const PAGE_SIZE = 9;
+  let currentPage = 1;
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init() {
+    // events
+    refreshBtn.addEventListener('click', () => {
+      loadWarehouses();
+      toast('Warehouses refreshed', 'success');
+    });
+    addWarehouseBtn.addEventListener('click', () => openModal('add'));
+    exportCsvBtn.addEventListener('click', exportCSV);
+
+    searchInput.addEventListener('input', debounce(applyFilters, 200));
+    statusFilter.addEventListener('change', applyFilters);
+    sortBy.addEventListener('change', applyFilters);
+
+    prevPageBtn.addEventListener('click', () => changePage(-1));
+    nextPageBtn.addEventListener('click', () => changePage(1));
+
+    // modal wiring
+    modal.addEventListener('click', (e) => {
+      if (e.target.dataset.close !== undefined || e.target.classList.contains('modal-overlay')) closeModal();
+    });
+    modalCloseBtn.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalHidden()) closeModal(); });
+
+    warehouseForm.addEventListener('submit', saveWarehouse);
+
+    // initial fetch
+    loadWarehouses();
+  }
+
+  function modalHidden(){ return modal.getAttribute('aria-hidden') === 'true'; }
+
+  async function loadWarehouses() {
+    showLoading(true);
+    try {
+      const res = await fetch('/api/warehouses');
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      allWarehouses = Array.isArray(data?.warehouses) ? data.warehouses : [];
+      applyFilters();
+      updateStats();
+    } catch (err) {
+      console.error(err);
+      grid.innerHTML = `<div class="loading-placeholder"><p>Failed to load warehouses</p></div>`;
+      resultsMeta.textContent = 'Showing 0 results';
+      toast('Failed to load warehouses', 'error');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function showLoading(isLoading){
+    loadingState.style.display = isLoading ? 'block' : 'none';
+  }
+
+  function applyFilters(){
+    const q = searchInput.value.trim().toLowerCase();
+    const status = statusFilter.value;
+
+    filtered = allWarehouses.filter(w => {
+      const hay = `${w.name||''} ${w.city||''} ${w.manager_name||''}`.toLowerCase();
+      const statusOk = status === 'all' ? true : (status === 'active' ? !!w.is_active : !w.is_active);
+      return hay.includes(q) && statusOk;
+    });
+
+    sortFiltered();
+    currentPage = 1;
+    renderWarehouses();
+  }
+
+  function sortFiltered(){
+    const [key, dir] = sortBy.value.split('-');
+    filtered.sort((a,b) => {
+      if (key === 'utilization'){
+        const ua = a.capacity ? a.current_stock / a.capacity : 0;
+        const ub = b.capacity ? b.current_stock / b.capacity : 0;
+        return dir === 'asc' ? ua - ub : ub - ua;
+      }
+      if (key === 'capacity'){
+        return dir === 'asc' ? (a.capacity||0) - (b.capacity||0) : (b.capacity||0) - (a.capacity||0);
+      }
+      const va = (key === 'city' ? a.city : a.name) || '';
+      const vb = (key === 'city' ? b.city : b.name) || '';
+      return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+
+  function paginate(items){
+    const total = items.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(currentPage, pages);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return { slice: items.slice(start, start + PAGE_SIZE), total, pages };
+  }
+
+  function renderWarehouses(){
+    const { slice, total, pages } = paginate(filtered);
+
+    if (total === 0){
+      grid.innerHTML = `<div class="loading-placeholder"><p>No warehouses found</p></div>`;
+      resultsMeta.textContent = 'Showing 0 results';
+      pagination.hidden = true;
+      return;
+    }
+
+    grid.innerHTML = slice.map(renderCard).join('');
+    resultsMeta.textContent = `Showing ${slice.length} of ${total} ${total === 1 ? 'result' : 'results'}`;
+
+    // pagination controls
+    pagination.hidden = pages <= 1;
+    pageInfo.textContent = `Page ${currentPage} of ${pages}`;
+    prevPageBtn.disabled = currentPage === 1;
+    nextPageBtn.disabled = currentPage === pages;
+  }
+
+  function changePage(delta){
+    currentPage += delta;
+    renderWarehouses();
+  }
+
+  function renderCard(warehouse){
+    const capacity = Number(warehouse.capacity) || 0;
+    const stock = Number(warehouse.current_stock) || 0;
+    const utilization = capacity > 0 ? (stock / capacity * 100) : 0;
+    let fillClass = '';
+    if (utilization >= 90) fillClass = 'danger';
+    else if (utilization >= 75) fillClass = 'warning';
+
+    const id = String(warehouse.warehouse_id || '');
+
+    return `
+      <article class="warehouse-card" aria-labelledby="wh-${id}-title">
+        <div class="warehouse-header">
+          <div class="warehouse-title">
+            <div class="warehouse-icon"><i class="fas fa-warehouse" aria-hidden="true"></i></div>
+            <div class="warehouse-info">
+              <h3 id="wh-${id}-title">${escapeHtml(warehouse.name || 'Untitled')}</h3>
+              <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${escapeHtml(warehouse.city || '—')}${warehouse.state ? `, ${escapeHtml(warehouse.state)}` : ''}</p>
+            </div>
+          </div>
+          <span class="warehouse-status ${warehouse.is_active ? 'status-active' : 'status-inactive'}" title="${warehouse.is_active ? 'Active' : 'Inactive'}">
+            ${warehouse.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+
+        <div class="warehouse-details">
+          <div class="detail-row">
+            <span class="detail-label">Manager</span>
+            <span class="detail-value">${escapeHtml(warehouse.manager_name || 'N/A')}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Capacity</span>
+            <span class="detail-value">${numberFmt(capacity)} units</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Current Stock</span>
+            <span class="detail-value">${numberFmt(stock)} units</span>
+          </div>
+        </div>
+
+        <div class="capacity-bar">
+          <div class="capacity-bar-label">
+            <span>Utilization</span>
+            <span><strong>${utilization.toFixed(1)}%</strong></span>
+          </div>
+          <div class="capacity-progress" aria-hidden="true">
+            <div class="capacity-fill ${fillClass}" style="width:${Math.min(100, Math.max(0, utilization))}%"></div>
+          </div>
+        </div>
+
+        <div class="warehouse-actions">
+          <button class="btn btn-sm btn-primary" onclick="location.href='/warehouse/${encodeURIComponent(id)}'">
+            <i class="fas fa-eye" aria-hidden="true"></i> View
+          </button>
+          <button class="btn btn-sm btn-outline" data-edit="${encodeURIComponent(id)}">
+            <i class="fas fa-edit" aria-hidden="true"></i> Edit
+          </button>
+        </div>
+      </article>
+    `;
+  }
+
+  // delegated edit handler (after render)
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-edit]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-edit');
+    const warehouse = allWarehouses.find(w => String(w.warehouse_id) === id);
+    if (warehouse) openModal('edit', warehouse);
+  });
+
+  function updateStats(){
+    const totalWarehouses = allWarehouses.length;
+    const totalCapacity = allWarehouses.reduce((sum, w) => sum + (Number(w.capacity) || 0), 0);
+    const currentStock = allWarehouses.reduce((sum, w) => sum + (Number(w.current_stock) || 0), 0);
+    const utilization = totalCapacity > 0 ? (currentStock / totalCapacity * 100) : 0;
+
+    byId('totalWarehouses').textContent = String(totalWarehouses);
+    byId('totalCapacity').textContent = numberFmt(totalCapacity);
+    byId('currentStock').textContent = numberFmt(currentStock);
+    byId('utilization').textContent = utilization.toFixed(1) + '%';
+  }
+
+  function openModal(mode, warehouse){
+    modal.setAttribute('aria-hidden', 'false');
+    trapFocus(modal);
+    document.body.style.overflow = 'hidden';
+    modalTitleText.textContent = mode === 'edit' ? 'Edit Warehouse' : 'Add Warehouse';
+    warehouseForm.reset();
+
+    if (mode === 'edit' && warehouse){
+      setVal('name', warehouse.name || '');
+      setVal('manager_name', warehouse.manager_name || '');
+      setVal('city', warehouse.city || '');
+      setVal('state', warehouse.state || '');
+      setVal('capacity', warehouse.capacity || '');
+      setVal('current_stock', warehouse.current_stock || '');
+      setVal('location', warehouse.location || '');
+      warehouseForm.dataset.mode = 'edit';
+      warehouseForm.dataset.id = warehouse.warehouse_id;
+    } else {
+      delete warehouseForm.dataset.mode;
+      delete warehouseForm.dataset.id;
+    }
+  }
+
+  function closeModal(){
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    releaseFocus();
+  }
+
+  async function saveWarehouse(e){
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries());
+    // coerce numeric
+    data.capacity = Number(data.capacity || 0);
+    data.current_stock = Number(data.current_stock || 0);
+
+    try {
+      const method = form.dataset.mode === 'edit' ? 'PUT' : 'POST';
+      const url = form.dataset.mode === 'edit' ? `/api/warehouses/${encodeURIComponent(form.dataset.id)}` : '/api/warehouses';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast('Warehouse saved successfully', 'success');
+      closeModal();
+      await loadWarehouses();
+    } catch(err){
+      console.error(err);
+      toast('Error saving warehouse', 'error');
+    }
+  }
+
+  function exportCSV(){
+    const rows = [['Name','Manager','City','State','Capacity','Current Stock','Active']];
+    filtered.forEach(w => rows.push([
+      w.name||'', w.manager_name||'', w.city||'', w.state||'', Number(w.capacity||0), Number(w.current_stock||0), w.is_active? 'Yes':'No'
+    ]));
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'warehouses.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // utilities
+  function numberFmt(n){ return Number(n).toLocaleString(); }
+  function byId(id){ return document.getElementById(id); }
+  function setVal(name, val){ byId(name).value = val; }
+  function csvEscape(v){
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function debounce(fn, ms){ let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, args), ms); }; }
+
+  // Accessible toast (minimal inline implementation)
+  let toastTimeout;
+  function toast(message, type = 'info'){
+    clearTimeout(toastTimeout);
+    let el = document.getElementById('app-toast');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'app-toast';
+      el.setAttribute('role','status');
+      el.setAttribute('aria-live','polite');
+      el.style.position='fixed'; el.style.right='1rem'; el.style.bottom='1rem'; el.style.zIndex='60';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `<div style="padding:.75rem 1rem;border-radius:.75rem;box-shadow:0 4px 14px rgba(0,0,0,.15);border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">
+      <strong style="margin-right:.5rem;">${type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Notice'}:</strong> ${escapeHtml(message)}
+    </div>`;
+    toastTimeout = setTimeout(() => { el.innerHTML = ''; }, 2200);
+  }
+
+  // expose for header buttons (optional)
+  window.refreshWarehouses = loadWarehouses;
+
+  // Focus trap for modal
+  let lastFocused;
+  function trapFocus(container){
+    lastFocused = document.activeElement;
+    const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0]; const last = focusable[focusable.length - 1];
+    first && first.focus();
+    container.addEventListener('keydown', handleTrap);
+    function handleTrap(e){
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
+  }
+  function releaseFocus(){
+    modal.removeEventListener('keydown', () => {});
+    if (lastFocused) lastFocused.focus();
+  }
+})();
+</script>
+{% endblock %}

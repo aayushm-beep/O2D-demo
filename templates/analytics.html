@@ -1,0 +1,159 @@
+<!-- analytics.html -->
+{% extends "base.html" %}
+{% block title %}Analytics · O2D-Demo{% endblock %}
+{% block extra_css %}
+<style>
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-md);margin-bottom:var(--space-md)}
+.kpi{background:var(--bg-primary);border-radius:var(--radius-md);padding:var(--space-md);box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+.kpi h3{margin:0 0 0.5rem;font-size:var(--font-xs);color:var(--text-secondary);font-weight:600}
+.kpi .val{font-size:var(--font-2xl);font-weight:800}
+.filters{display:flex;gap:var(--space-sm);align-items:center;margin-bottom:var(--space-md)}
+.filters h2{margin:0;font-size:var(--font-xl);font-weight:700}
+.filters select{padding:0.313rem 0.625rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:var(--font-sm);background:var(--bg-primary);color:var(--text-primary)}
+.filters button{padding:0.313rem 0.625rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:var(--font-sm);background:var(--bg-primary);color:var(--text-primary);cursor:pointer}
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:var(--space-md)}
+.panel{background:var(--bg-primary);border-radius:var(--radius-md);padding:var(--space-md);box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+.panel h4{margin:0 0 var(--space-sm);font-size:var(--font-md);font-weight:600}
+.list{display:grid;gap:0.625rem}
+.row{display:flex;justify-content:space-between;font-size:var(--font-sm)}
+@media (max-width:1100px){
+  .charts{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding:var(--space-xl)">
+<div class="filters">
+  <h2>Analytics</h2>
+  <div style="margin-left:auto;display:flex;gap:0.5rem;">
+    <select id="range">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <button id="refresh">Refresh</button>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><h3>Total Revenue</h3><div class="val" id="kpi-rev">—</div></div>
+  <div class="kpi"><h3>Total Orders</h3><div class="val" id="kpi-ord">—</div></div>
+  <div class="kpi"><h3>Avg Order Value</h3><div class="val" id="kpi-aov">—</div></div>
+  <div class="kpi"><h3>Conversion Rate</h3><div class="val" id="kpi-cr">—</div></div>
+</div>
+
+<div class="charts">
+  <div class="panel">
+    <h4>Revenue Trend</h4>
+    <canvas id="revChart" height="140"></canvas>
+  </div>
+  <div class="panel">
+    <h4>Status Distribution</h4>
+    <canvas id="statusChart" height="140"></canvas>
+  </div>
+
+  <div class="panel">
+    <h4>Top Categories</h4>
+    <canvas id="catChart" height="140"></canvas>
+  </div>
+  <div class="panel">
+    <h4>Orders by Hour</h4>
+    <canvas id="hourChart" height="140"></canvas>
+  </div>
+
+  <div class="panel">
+    <h4>Top Regions</h4>
+    <canvas id="regionChart" height="140"></canvas>
+  </div>
+  <div class="panel">
+    <h4>Top Products & Customers</h4>
+    <div class="list" id="leaders"></div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const fmtINR = v => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v ?? 0);
+const fmtNum = v => new Intl.NumberFormat('en-IN').format(v ?? 0);
+
+let charts = {};
+
+async function loadData() {
+  const range = document.getElementById('range').value;
+  const res = await fetch(`/api/analytics/data?range=${range}`, { credentials: 'same-origin' });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  const k = data.kpis || {};
+  document.getElementById('kpi-rev').textContent = fmtINR(k.totalRevenue || 0);
+  document.getElementById('kpi-ord').textContent = fmtNum(k.totalOrders || 0);
+  document.getElementById('kpi-aov').textContent = fmtINR(k.avgOrderValue || 0);
+  document.getElementById('kpi-cr').textContent = (k.conversionRate ?? 0) + '%';
+
+  const ensure = (id, cfg)=> {
+    if (charts[id]) { charts[id].destroy(); }
+    charts[id] = new Chart(document.getElementById(id), cfg);
+  };
+
+  const rev = data.revenue || {labels:[], values:[]};
+  ensure('revChart', {
+    type: 'line',
+    data: { labels: rev.labels, datasets: [{ label: 'Revenue', data: rev.values, tension: .35, fill: true }]},
+    options: { responsive: true, maintainAspectRatio: true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>fmtINR(v),font:{size:10}}}}}
+  });
+
+  const st = data.status || {labels:[], values:[]};
+  ensure('statusChart', {
+    type: 'doughnut',
+    data: { labels: st.labels, datasets: [{ data: st.values }]},
+    options: { responsive: true, maintainAspectRatio: true, plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}
+  });
+
+  const cat = data.categories || {labels:[], values:[]};
+  ensure('catChart', {
+    type: 'bar',
+    data: { labels: cat.labels, datasets: [{ label: 'Orders', data: cat.values }]},
+    options: { responsive: true, maintainAspectRatio: true, plugins:{legend:{display:false}}}
+  });
+
+  const hr = data.hourly || {values:[]};
+  ensure('hourChart', {
+    type: 'bar',
+    data: { labels: Array.from({length:24}, (_,i)=>i.toString().padStart(2,'0')+':00'), datasets: [{ label: 'Orders', data: hr.values || [] }]},
+    options: { responsive: true, maintainAspectRatio: true, plugins:{legend:{display:false}}}
+  });
+
+  const rg = data.regions || {labels:[], values:[]};
+  ensure('regionChart', {
+    type: 'bar',
+    data: { labels: rg.labels, datasets: [{ label: 'Orders', data: rg.values }]},
+    options: { responsive: true, maintainAspectRatio: true, indexAxis:'y', plugins:{legend:{display:false}}}
+  });
+
+  const leaders = document.getElementById('leaders');
+  leaders.innerHTML = '';
+  const prods = data.topProducts || [];
+  const custs = data.topCustomers || [];
+  const mk = (label, right) => {
+    const div = document.createElement('div');
+    div.className='row';
+    div.innerHTML = `<span>${label}</span><span>${right}</span>`;
+    return div;
+  }
+  leaders.appendChild(mk('Top Products',''));
+  prods.forEach(p => leaders.appendChild(mk('• ' + p.name, `${fmtNum(p.sales)} orders · ${fmtINR(p.revenue)}`)));
+  leaders.appendChild(document.createElement('hr'));
+  leaders.appendChild(mk('Top Customers',''));
+  custs.forEach(c => leaders.appendChild(mk('• ' + c.name, `${fmtNum(c.orders)} orders · ${fmtINR(c.revenue)}`)));
+}
+
+document.getElementById('refresh').addEventListener('click', loadData);
+document.getElementById('range').addEventListener('change', loadData);
+loadData();
+</script>
+{% endblock %}

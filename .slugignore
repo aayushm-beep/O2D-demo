@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+*.log
+.env
+.git/
+*.sql
+generate_bulk_data.py
+migrate_database.py
+init_db.py
+create_database.sql
+README.md
+.gitignore

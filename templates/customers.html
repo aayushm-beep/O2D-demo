@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}Customers - O2D-Demo{% endblock %}
+
+{% block extra_css %}
+<style>
+.customers-container {
+    padding: var(--space-xl);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    animation: fadeIn .4s;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--space-sm);
+    border-bottom: 2px solid var(--border);
+    margin-bottom: var(--space-md);
+}
+
+.header-content h1 {
+    margin: 0.188rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--font-xl);
+    font-weight: 700;
+}
+
+.subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin: var(--space-md) 0;
+}
+
+.stat-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    border: 1px solid var(--border);
+    transition: transform .2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: grid;
+    place-items: center;
+    font-size: var(--font-lg);
+    color: #fff;
+}
+
+.bg-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.bg-green { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.bg-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.bg-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.stat-info h4 {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin: 0.063rem 0 0.25rem;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: var(--font-2xl);
+    font-weight: 800;
+}
+
+.filters-panel {
+    margin: 0.188rem 0 var(--space-md);
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.313rem;
+}
+
+.filter-item label {
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.input-with-icon input {
+    padding-left: 2rem;
+}
+
+.table-container {
+    margin-top: 0.188rem;
+}
+
+.table-scroll {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: auto;
+}
+
+.customers-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px;
+}
+
+.customers-table thead {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.customers-table th {
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: var(--font-xs);
+    position: sticky;
+    top: 0;
+    color: white;
+}
+
+.customers-table td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+    font-size: var(--font-sm);
+}
+
+.customers-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.numeric {
+    text-align: right;
+}
+
+.actions {
+    width: 70px;
+    text-align: center;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.188rem 0.438rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.status-badge {
+    background: #eef2ff;
+    color: #3730a3;
+    border-color: #c7d2fe;
+    text-transform: capitalize;
+}
+
+.skeleton-row td {
+    padding: 0.75rem;
+}
+
+.skeleton {
+    height: 14px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--border) 0%, var(--border-light) 50%, var(--border) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: space-between;
+    padding: var(--space-sm) 0.125rem;
+}
+
+.page-info {
+    color: var(--text-secondary);
+    font-size: var(--font-sm);
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 0.313rem;
+}
+
+.page-btn {
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.313rem 0.5rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-xs);
+    transition: all var(--transition-fast);
+}
+
+.page-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: transparent;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-btn:not(:disabled):hover {
+    border-color: var(--primary);
+}
+
+.modal[aria-hidden="true"] {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: relative;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    width: min(620px, 92vw);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: var(--font-md);
+}
+
+.modal-close {
+    font-size: var(--font-xl);
+    line-height: 1;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.188rem 0.375rem;
+}
+
+.modal-body {
+    padding: var(--space-md);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+    font-size: var(--font-xs);
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: flex-end;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+}
+
+.section-title {
+    margin: var(--space-md) 0 var(--space-sm);
+    font-size: var(--font-md);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="customers-container" id="customersRoot">
+    <header class="page-header" role="banner">
+        <div class="header-content">
+            <h1><i class="fas fa-users"></i> Customer Management</h1>
+            <p class="subtitle">Manage and track your customer relationships</p>
+        </div>
+        <div class="header-actions" role="toolbar">
+            <button class="btn btn-outline btn-sm" id="refreshBtn"><i class="fas fa-sync-alt"></i> <span>Refresh</span></button>
+            <button class="btn btn-ghost btn-sm" id="exportBtn"><i class="fas fa-file-export"></i> <span>Export CSV</span></button>
+            <button class="btn btn-primary btn-sm" id="addCustomerBtn"><i class="fas fa-plus"></i> <span>Add Customer</span></button>
+        </div>
+    </header>
+
+    <section class="stats-grid">
+        <article class="stat-card">
+            <div class="stat-icon bg-blue"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <h4>Total Customers</h4>
+                <p class="stat-value" id="totalCustomers">0</p>
+            </div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-icon bg-green"><i class="fas fa-user-check"></i></div>
+            <div class="stat-info">
+                <h4>Active Customers</h4>
+                <p class="stat-value" id="activeCustomers">0</p>
+            </div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-icon bg-purple"><i class="fas fa-crown"></i></div>
+            <div class="stat-info">
+                <h4>VIP Customers</h4>
+                <p class="stat-value" id="vipCustomers">0</p>
+            </div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-icon bg-orange"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info">
+                <h4>Avg. Lifetime Value</h4>
+                <p class="stat-value" id="avgLTV">₹0.00</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="filters-panel">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="searchCustomer"><i class="fas fa-search"></i> Search</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="searchCustomer" placeholder="Search by name, email, company..." class="form-control" autocomplete="off" />
+                </div>
+            </div>
+            <div class="filter-item">
+                <label for="typeFilter"><i class="fas fa-tags"></i> Customer Type</label>
+                <select id="typeFilter" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="retail">Retail</option>
+                    <option value="wholesale">Wholesale</option>
+                    <option value="corporate">Corporate</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label for="locationFilter"><i class="fas fa-map-marker-alt"></i> City</label>
+                <select id="locationFilter" class="form-control">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label for="sortBy"><i class="fas fa-sort"></i> Sort</label>
+                <select id="sortBy" class="form-control">
+                    <option value="name-asc">Name (A→Z)</option>
+                    <option value="name-desc">Name (Z→A)</option>
+                    <option value="ltv-desc">LTV (High→Low)</option>
+                    <option value="ltv-asc">LTV (Low→High)</option>
+                    <option value="outstanding-desc">Outstanding (High→Low)</option>
+                    <option value="outstanding-asc">Outstanding (Low→High)</option>
+                    <option value="city-asc">City (A→Z)</option>
+                </select>
+            </div>
+            <button class="btn btn-outline btn-sm" id="clearFilters"><i class="fas fa-times"></i> Clear</button>
+        </div>
+    </section>
+
+    <div class="table-container">
+        <div class="table-scroll">
+            <table class="customers-table">
+                <thead>
+                    <tr>
+                        <th>Customer ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>Type</th>
+                        <th>City</th>
+                        <th class="numeric">Credit Limit</th>
+                        <th class="numeric">Outstanding</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+                    <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+                    <tr class="skeleton-row"><td colspan="10"><div class="skeleton"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-controls" id="pager"></div>
+            <div class="page-size">
+                <label for="pageSize">Rows per page</label>
+                <select id="pageSize">
+                    <option>10</option>
+                    <option selected>15</option>
+                    <option>25</option>
+                    <option>50</option>
+                </select>
+            </div>
+            <span id="pageInfo" class="page-info">Page 1 of 1</span>
+        </div>
+    </div>
+</div>
+
+<div id="customerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-overlay" data-close="true"></div>
+    <div class="modal-content" role="document">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> <span id="modalTitle">Add Customer</span></h2>
+            <button class="modal-close" data-close="true">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="customerForm">
+                <div class="form-grid">
+                    <div class="form-group"><label for="c_name">Name *</label><input id="c_name" name="name" class="form-control" required></div>
+                    <div class="form-group"><label for="c_email">Email *</label><input id="c_email" name="email" class="form-control" type="email" required></div>
+                    <div class="form-group"><label for="c_phone">Phone *</label><input id="c_phone" name="phone" class="form-control" type="tel" required></div>
+                    <div class="form-group"><label for="c_company">Company</label><input id="c_company" name="company" class="form-control"></div>
+                    <div class="form-group"><label for="c_type">Customer Type</label>
+                        <select id="c_type" name="customer_type" class="form-control">
+                            <option value="retail">Retail</option>
+                            <option value="wholesale">Wholesale</option>
+                            <option value="corporate">Corporate</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label for="c_limit">Credit Limit</label><input id="c_limit" name="credit_limit" class="form-control" type="number" step="0.01" min="0"></div>
+                </div>
+
+                <h3 class="section-title">Address Details</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width"><label for="c_addr1">Address Line 1</label><input id="c_addr1" name="address_line1" class="form-control"></div>
+                    <div class="form-group"><label for="c_city">City</label><input id="c_city" name="city" class="form-control"></div>
+                    <div class="form-group"><label for="c_state">State</label><input id="c_state" name="state" class="form-control"></div>
+                    <div class="form-group"><label for="c_zip">Zipcode</label><input id="c_zip" name="zipcode" class="form-control"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" data-close="true">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(()=>{
+  let allCustomers = [];
+  let filtered = [];
+  let currentPage = 1;
+  let pageSize = 15;
+
+  const tbody = document.getElementById('customersTableBody');
+  const pager = document.getElementById('pager');
+  const pageInfo = document.getElementById('pageInfo');
+  const pageSizeEl = document.getElementById('pageSize');
+  const searchEl = document.getElementById('searchCustomer');
+  const typeFilter = document.getElementById('typeFilter');
+  const locationFilter = document.getElementById('locationFilter');
+  const sortBy = document.getElementById('sortBy');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const clearBtn = document.getElementById('clearFilters');
+  const addBtn = document.getElementById('addCustomerBtn');
+  const modal = document.getElementById('customerModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const form = document.getElementById('customerForm');
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init(){
+    refreshBtn.addEventListener('click', () => { loadCustomers(); showToast('Customers refreshed', 'success'); });
+    exportBtn.addEventListener('click', exportCSV);
+    clearBtn.addEventListener('click', () => { searchEl.value=''; typeFilter.value=''; locationFilter.value=''; sortBy.value='name-asc'; applyFilters(); });
+    addBtn.addEventListener('click', () => openModal('add'));
+
+    ['input','change'].forEach(evt => { 
+      searchEl.addEventListener(evt, debounce(applyFilters, 200)); 
+      typeFilter.addEventListener(evt, applyFilters); 
+      locationFilter.addEventListener(evt, applyFilters); 
+      sortBy.addEventListener(evt, applyFilters); 
+    });
+    pageSizeEl.addEventListener('change', () => { pageSize = Number(pageSizeEl.value); currentPage = 1; renderTable(); });
+
+    modal.addEventListener('click', (e) => { if (e.target.dataset.close !== undefined || e.target.classList.contains('modal-overlay')) closeModal(); });
+    form.addEventListener('submit', onSave);
+
+    loadCustomers();
+  }
+
+  async function loadCustomers(){
+    showSkeleton(true);
+    try {
+      const res = await fetch('/api/customers');
+      const data = await res.json();
+      allCustomers = Array.isArray(data?.customers) ? data.customers : [];
+      hydrateLocationFilter(allCustomers);
+      updateStats(allCustomers);
+      applyFilters();
+    } catch (err){
+      console.error('Error loading customers:', err);
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center">Failed to load customers</td></tr>';
+    } finally {
+      showSkeleton(false);
+    }
+  }
+
+  function showSkeleton(show){
+    tbody.querySelectorAll('.skeleton-row').forEach(r => r.style.display = show ? '' : 'none');
+  }
+
+  function hydrateLocationFilter(list){
+    const cities = [...new Set(list.map(c => c.city).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+    const current = locationFilter.value;
+    locationFilter.innerHTML = '<option value="">All Locations</option>' + cities.map(c => `<option value="${escapeHtml(c)}" ${c===current? 'selected':''}>${escapeHtml(c)}</option>`).join('');
+  }
+
+  function updateStats(list){
+    byId('totalCustomers').textContent = list.length.toLocaleString('en-IN');
+    const active = list.filter(c => num(c.outstanding_balance) > 0).length;
+    byId('activeCustomers').textContent = active.toLocaleString('en-IN');
+    const vip = list.filter(c => num(c.credit_limit) > 50000).length;
+    byId('vipCustomers').textContent = vip.toLocaleString('en-IN');
+    const avg = list.length ? (list.reduce((s,c)=> s + num(c.credit_limit), 0) / list.length) : 0;
+    byId('avgLTV').textContent = '₹' + avg.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function applyFilters(){
+    const q = searchEl.value.trim().toLowerCase();
+    const type = typeFilter.value;
+    const city = locationFilter.value;
+
+    filtered = allCustomers.filter(c => {
+      const hay = `${c.name||''} ${c.email||''} ${c.company||''}`.toLowerCase();
+      if (q && !hay.includes(q)) return false;
+      if (type && c.customer_type !== type) return false;
+      if (city && c.city !== city) return false;
+      return true;
+    });
+
+    sortFiltered();
+    currentPage = 1;
+    renderTable();
+  }
+
+  function sortFiltered(){
+    const [key, dir] = sortBy.value.split('-');
+    filtered.sort((a,b) => {
+      const mul = dir === 'asc' ? 1 : -1;
+      if (key === 'ltv') return mul * (num(a.credit_limit) - num(b.credit_limit));
+      if (key === 'outstanding') return mul * (num(a.outstanding_balance) - num(b.outstanding_balance));
+      if (key === 'city') return mul * String(a.city||'').localeCompare(String(b.city||''));
+      return mul * String(a.name||'').localeCompare(String(b.name||''));
+    });
+  }
+
+  function renderTable(){
+    const total = filtered.length;
+    if (!total){
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:1rem;color:var(--text-secondary);">No customers found</td></tr>';
+      renderPager(0,1);
+      return;
+    }
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    const start = (currentPage-1) * pageSize;
+    const slice = filtered.slice(start, start+pageSize);
+
+    tbody.innerHTML = slice.map(rowTpl).join('');
+    renderPager(total, pages);
+  }
+
+  function rowTpl(c){
+    return `
+      <tr>
+        <td><strong>${escapeHtml(c.customer_id || '')}</strong></td>
+        <td>${escapeHtml(c.name || '-')}</td>
+        <td><a href="mailto:${escapeAttr(c.email||'')}" style="color:var(--primary)">${escapeHtml(c.email || 'N/A')}</a></td>
+        <td>${escapeHtml(c.phone || 'N/A')}</td>
+        <td>${escapeHtml(c.company || 'N/A')}</td>
+        <td><span class="badge status-badge">${escapeHtml(c.customer_type || 'retail')}</span></td>
+        <td>${escapeHtml(c.city || 'N/A')}</td>
+        <td class="numeric">₹${fmtMoney(num(c.credit_limit))}</td>
+        <td class="numeric">₹${fmtMoney(num(c.outstanding_balance))}</td>
+        <td class="actions">
+          <button class="btn btn-sm btn-primary" title="View" onclick="location.href='/customer/${encodeURIComponent(c.customer_id)}'"><i class="fas fa-eye"></i></button>
+        </td>
+      </tr>`;
+  }
+
+  function renderPager(total, pages){
+    const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+    const nextDisabled = currentPage >= pages ? 'disabled' : '';
+    let html = `<button class="page-btn" ${prevDisabled} data-page="${currentPage-1}"><i class="fas fa-chevron-left"></i></button>`;
+    const windowSize = 5; 
+    const start = Math.max(1, currentPage - Math.floor(windowSize/2)); 
+    const end = Math.min(pages, start + windowSize - 1);
+    for (let i=start;i<=end;i++){ 
+      html += `<button class="page-btn ${i===currentPage?'active':''}" data-page="${i}">${i}</button>`; 
+    }
+    html += `<button class="page-btn" ${nextDisabled} data-page="${currentPage+1}"><i class="fas fa-chevron-right"></i></button>`;
+    pager.innerHTML = html;
+    pageInfo.textContent = `Page ${Math.min(currentPage,pages)} of ${Math.max(pages,1)}`;
+  }
+
+  pager.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    const p = Number(btn.getAttribute('data-page'));
+    if (Number.isFinite(p) && p >= 1){ currentPage = p; renderTable(); }
+  });
+
+  function exportCSV(){
+    const rows = [['Customer ID','Name','Email','Phone','Company','Type','City','Credit Limit','Outstanding']];
+    filtered.forEach(c => rows.push([
+      c.customer_id||'', c.name||'', c.email||'', c.phone||'', c.company||'', c.customer_type||'', c.city||'', num(c.credit_limit), num(c.outstanding_balance)
+    ]));
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'customers.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function openModal(mode, customer){
+    modal.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+    modalTitle.textContent = mode === 'edit' ? 'Edit Customer' : 'Add Customer';
+    form.reset();
+    if (mode === 'edit' && customer){
+      setVal('c_name', customer.name);
+      setVal('c_email', customer.email);
+      setVal('c_phone', customer.phone);
+      setVal('c_company', customer.company);
+      setVal('c_type', customer.customer_type);
+      setVal('c_limit', num(customer.credit_limit));
+      setVal('c_addr1', customer.address_line1);
+      setVal('c_city', customer.city);
+      setVal('c_state', customer.state);
+      setVal('c_zip', customer.zipcode);
+      form.dataset.mode = 'edit';
+      form.dataset.id = customer.customer_id;
+    } else {
+      delete form.dataset.mode; delete form.dataset.id;
+    }
+  }
+
+  function closeModal(){ modal.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }
+
+  async function onSave(e){
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.credit_limit = num(data.credit_limit);
+
+    try {
+      const method = form.dataset.mode === 'edit' ? 'PUT' : 'POST';
+      const url = form.dataset.mode === 'edit' ? `/api/customers/${encodeURIComponent(form.dataset.id)}` : '/api/customers';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (!res.ok) throw new Error('Failed to save');
+      closeModal();
+      await loadCustomers();
+      showToast('Customer saved successfully', 'success');
+    } catch(err){ console.error(err); showToast('Error saving customer', 'error'); }
+  }
+
+  function csvEscape(v){ const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+  function escapeAttr(s){ return escapeHtml(s).replace(/\s/g,' '); }
+  function num(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
+  function byId(id){ return document.getElementById(id); }
+  function setVal(id, v){ byId(id).value = v ?? ''; }
+  function fmtMoney(n){ return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), ms); }; }
+
+  window.refreshCustomers = loadCustomers;
+  window.openAddCustomerModal = () => openModal('add');
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}O2D-Demo{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-truck-fast"></i>
+                <span>O2D-Demo</span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <i class="fas fa-dashboard"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/orders" class="nav-item {% if request.path == '/orders' %}active{% endif %}">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Orders</span>
+            </a>
+            <a href="/sheets" class="nav-item {% if request.path == '/sheets' %}active{% endif %}">
+                <i class="fa-brands fa-google-drive"></i>
+                <span>Google Sheet</span>
+            </a>
+            <a href="/customers" class="nav-item {% if request.path == '/customers' %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </a>
+            <a href="/products" class="nav-item {% if request.path == '/products' %}active{% endif %}">
+                <i class="fas fa-box"></i>
+                <span>Products</span>
+            </a>
+            <a href="/warehouse" class="nav-item {% if request.path == '/warehouse' %}active{% endif %}">
+                <i class="fas fa-warehouse"></i>
+                <span>Warehouse</span>
+            </a>
+            <a href="/shipments" class="nav-item {% if request.path == '/shipments' %}active{% endif %}">
+                <i class="fas fa-shipping-fast"></i>
+                <span>Shipments</span>
+            </a>
+            <a href="/analytics" class="nav-item {% if request.path == '/analytics' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
+                <i class="fa-solid fa-cloud-sun"></i>
+                <span>Forecasts</span>
+            </a>
+            <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <p class="user-name">{{ session.username }}</p>
+                    <p class="user-role">{{ session.role|capitalize }}</p>
+                </div>
+            </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="top-bar-right">
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <button class="notification-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                
+                <div class="user-menu">
+                    <button class="user-menu-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{ session.username }}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay (GLOBAL) -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner-large"></div>
+    </div>
+
+    <script>
+        // Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+
+        // Restore sidebar state on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            
+            if (collapsed && window.innerWidth > 1024) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+            }
+            
+            // Initialize theme
+            initTheme();
+        });
+
+        // Theme Management
+        function initTheme() {
+            const themeToggle = document.getElementById('themeToggle');
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            updateThemeIcon(currentTheme);
+            
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const newTheme = current === 'light' ? 'dark' : 'light';
+                    
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    updateThemeIcon(newTheme);
+                    
+                    // Animate
+                    themeToggle.style.transform = 'rotate(360deg)';
+                    setTimeout(() => {
+                        themeToggle.style.transform = '';
+                    }, 300);
+                });
+            }
+        }
+
+        function updateThemeIcon(theme) {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const icon = themeToggle.querySelector('i');
+                icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ===== Global Loading Overlay (reference-counted) =====
+        let __activeFetches = 0;
+        const __overlayEl = document.getElementById('loadingOverlay');
+
+        function showLoading() {
+            __activeFetches++;
+            if (__overlayEl) __overlayEl.style.display = 'flex';
+        }
+        function hideLoading() {
+            __activeFetches = Math.max(0, __activeFetches - 1);
+            if (__activeFetches === 0 && __overlayEl) __overlayEl.style.display = 'none';
+        }
+
+        // Export globally
+        window.showToast = showToast;
+        window.showLoading = showLoading;
+        window.hideLoading = hideLoading;
+
+        // ===== Global fetch wrapper (balanced) =====
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            showLoading();
+            return originalFetch.apply(this, args)
+                .then(res => res)
+                .catch(err => { throw err; })
+                .finally(() => hideLoading());
+        };
+
+        // Safety: never leave overlay stuck
+        window.addEventListener('error', () => { __activeFetches = 0; hideLoading(); });
+        window.addEventListener('unhandledrejection', () => { __activeFetches = 0; hideLoading(); });
+
+        // Notification Panel
+        document.getElementById('notificationBtn')?.addEventListener('click', () => {
+            showToast('Notifications feature coming soon!', 'info');
+        });
+
+        // Close mobile sidebar on outside click
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 1024 && 
+                sidebar.classList.contains('show') && 
+                !sidebar.contains(e.target) && 
+                !e.target.closest('.mobile-menu-btn')) {
+                sidebar.classList.remove('show');
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
