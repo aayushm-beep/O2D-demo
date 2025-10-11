@@ -10,10 +10,15 @@ import secrets
 from config import Config
 from database import db, init_app, cache
 from models import Order, User, Warehouse, Product, Customer, Shipment
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 
+app = Flask(__name__)
+db = SQLAlchemy(app)
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
+
 
 # Enable HTTP compression for faster JSON/HTML delivery
 Compress(app)
@@ -525,11 +530,16 @@ def sync_check():
     return jsonify({"ok": ok, "issues": issues})
 
 @app.route('/forecast')
+@login_required
 def forecast_page():
     return render_template('forecast.html')
 
 
+
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
-    app.run(debug=Config.DEBUG, port=5010, host="127.0.0.1")
+        try:
+            db.create_all()
+            print("✅ Database tables created or already exist.")
+        except Exception as e:
+            print("⚠️ Error during DB setup:", e)
