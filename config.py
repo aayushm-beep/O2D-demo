@@ -12,10 +12,11 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
     
     # SQLAlchemy Configuration with Performance Optimizations
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        "?charset=utf8mb4"
-    )
+   import os
+
+SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for debugging
     
