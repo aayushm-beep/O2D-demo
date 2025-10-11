@@ -137,12 +137,27 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     SQLALCHEMY_ECHO = False
-    CACHE_TYPE = 'RedisCache'
+    CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')  # Use Redis if available
     SESSION_COOKIE_SECURE = True
     
     # Use environment variables for sensitive data
-    SECRET_KEY = os.getenv('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SECRET_KEY = os.getenv('SECRET_KEY', Config.SECRET_KEY)
+    
+    # Database URL - Render provides this
+    DATABASE_URL = os.getenv('DATABASE_URL', '')
+    
+    # Fix for Render's postgres:// vs postgresql:// issue
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL or (
+        f"mysql+pymysql://{Config.DB_USER}:{Config.DB_PASS}@"
+        f"{Config.DB_HOST}:{Config.DB_PORT}/{Config.DB_NAME}?charset=utf8mb4"
+    )
+    
+    # Google Sheets Configuration
+    GOOGLE_SA_JSON = os.getenv("GOOGLE_SA_JSON", "").strip()
+    GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "").strip()
 
 
 class TestingConfig(Config):
