@@ -12,7 +12,12 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
     
     # SQLAlchemy Configuration with Performance Optimizations
+    # Base URI - will be overridden in ProductionConfig
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///default.db")
+    
+    # Fix postgres:// to postgresql:// for SQLAlchemy compatibility
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
