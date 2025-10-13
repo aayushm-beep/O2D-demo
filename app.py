@@ -553,6 +553,16 @@ def sync_check():
 def forecast_page():
     return render_template('forecast.html')
 
+@app.route("/admin/load-demo")
+def load_demo():
+    from generate_bulk_data import main
+    try:
+        main()
+        return {"success": True, "message": "Demo data loaded successfully"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5010)
     with app.app_context():
