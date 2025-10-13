@@ -34,12 +34,30 @@ Compress(app)
 # Initialize database and cache
 from database import db, init_app, cache
 init_app(app)
+# --- Auto initialize PostgreSQL tables if missing ---
+from models import User
+import hashlib
+
 with app.app_context():
     try:
+        # Create all tables (only if they don't exist)
         db.create_all()
-        print("✓ Database tables ensured.")
+        print("✓ Verified PostgreSQL tables exist")
+
+        # Ensure admin user exists
+        if not User.query.filter_by(username="admin").first():
+            admin = User(
+                username="admin",
+                password=hashlib.sha256("admin123".encode()).hexdigest(),
+                role="admin",
+                email="admin@dispatchpro.com",
+                full_name="System Administrator",
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print("✓ Default admin user created (admin / admin123)")
     except Exception as e:
-        print("⚠️ Error creating database tables:", e)
+        print("⚠ Database initialization skipped:", e)
         
 # Import models
 from models import Order, User, Warehouse, Product, Customer, Shipment
