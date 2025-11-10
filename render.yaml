@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: your-app-name
+    name: Order-Dispatch-App
     env: python
     region: oregon
     buildCommand: |
@@ -10,3 +10,19 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+        # Exported from Render on 2025-11-10T06:37:07Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    databases:
+    - name: O2D-Demo
+      databaseName: order_dispatch_db
+      user: order_dispatch_db_user
+      plan: free
+      region: oregon
+      ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+      postgresMajorVersion: "17"
