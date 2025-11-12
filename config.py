@@ -5,11 +5,11 @@ class Config:
     """Application configuration with performance optimizations"""
     
     # Database Configuration
-    DB_HOST = os.getenv('DB_HOST', 'dpg-d3kussl6ubrc738thlq0-a')
+    DB_HOST = os.getenv('DB_HOST', 'dpg-d4a2kdqdbo4c73c3n0f0-a')
     DB_PORT = int(os.getenv('DB_PORT', 5432))
-    DB_USER = os.getenv('DB_USER', 'order_dispatch_db_user')
-    DB_PASS = os.getenv('DB_PASS', 'tiuuNCy1n0JYEEl02EozDFnEiIKN7eJM')
-    DB_NAME = os.getenv('DB_NAME', 'order_dispatch_db')
+    DB_USER = os.getenv('DB_USER', 'o2d_demo_user')
+    DB_PASS = os.getenv('DB_PASS', 'VyYgKwwgF4FIGuDqqTtZ0dc3sSAxDJcU')
+    DB_NAME = os.getenv('DB_NAME', 'o2d_demo')
     
     # SQLAlchemy Configuration with Performance Optimizations
     # Base URI - will be overridden in ProductionConfig
